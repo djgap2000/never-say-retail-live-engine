@@ -3,6 +3,7 @@
 Plugin Name: Never Say Retail Live Engine
 Description: Live sale system for Never Say Retail.
 Version: 4.0
+Update URI: https://github.com/djgap2000/never-say-retail-live-engine
 */
 
 if (!defined('ABSPATH')) exit;
