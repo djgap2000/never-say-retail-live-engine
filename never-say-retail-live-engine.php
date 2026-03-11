@@ -2,13 +2,13 @@
 /*
 Plugin Name: Never Say Retail Live Engine
 Description: Live sale system for Never Say Retail.
-Version: 4.2
+Version: 4.3
 Update URI: https://github.com/djgap2000/never-say-retail-live-engine
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('NSR_LIVE_OPT', 'nsr_live_state_v42');
+define('NSR_LIVE_OPT', 'nsr_live_state_v43');
 
 function nsr_live_default_state() {
     return array(
@@ -23,6 +23,7 @@ function nsr_live_default_state() {
         'claims_total' => 0,
         'total_savings' => 0,
         'next_item_no' => 101,
+        'revealed_count' => 0,
         'recent' => array(),
         'queue' => array(),
         'last_action' => '',
@@ -66,7 +67,7 @@ function nsr_live_upnext($state = null, $count = 3) {
     return $items;
 }
 
-function nsr_live_recent($state = null, $count = 4) {
+function nsr_live_recent($state = null, $count = 5) {
     if ($state === null) $state = nsr_live_state();
     return array_slice(array_reverse($state['recent']), 0, $count);
 }
@@ -79,6 +80,13 @@ function nsr_live_push_recent(&$state, $item, $status = '') {
     $state['recent'][] = array(
         'item_no' => $item['item_no'],
         'title'   => $item['title'],
+        'source'  => $item['source'],
+        'retail'  => $item['retail'],
+        'live'    => $item['live'],
+        'qty'     => $item['qty'],
+        'claimed' => $item['claimed'],
+        'barcode' => isset($item['barcode']) ? $item['barcode'] : '',
+        'note'    => isset($item['note']) ? $item['note'] : '',
         'status'  => $status ? $status : (nsr_live_stock_left($item) <= 0 ? 'SOLD OUT' : nsr_live_stock_left($item) . ' LEFT'),
     );
 }
@@ -122,6 +130,11 @@ function nsr_live_styles() {
         .nsr-form-grid input,.nsr-form-grid select{padding:8px}
         .nsr-list-row{padding:10px 0;border-top:1px solid #eee}
         .nsr-list-row:first-child{border-top:none}
+        .nsr-small{font-size:12px;color:#666}
+        .nsr-cue-box{background:#fff7ed;border:1px solid #fdba74;border-radius:12px;padding:12px;margin-top:12px}
+        .nsr-cue-box h3{margin:0 0 8px 0}
+        .nsr-cue-list{margin:0;padding-left:18px}
+        .nsr-golive-btn{margin-top:8px}
 
         .nsr-front-wrap{max-width:1100px;margin:0 auto;padding:20px}
         .nsr-hero{display:grid;grid-template-columns:1.15fr .85fr;gap:20px}
@@ -151,8 +164,9 @@ function nsr_live_styles() {
         .nsr-stat{background:#f9fafb;border-radius:12px;padding:12px}
         .nsr-stat strong{display:block;margin-bottom:6px}
         .nsr-lists{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px}
+
         @keyframes nsrPulse{0%{transform:scale(1)}50%{transform:scale(1.02)}100%{transform:scale(1)}}
-        @media (max-width: 900px){
+        @media (max-width:900px){
             .nsr-admin-grid,.nsr-admin-grid.second,.nsr-hero,.nsr-lists,.nsr-stats-grid,.nsr-form-grid{grid-template-columns:1fr}
             .nsr-video-box{min-height:220px}
             .nsr-price-drop .live{font-size:28px}
@@ -162,11 +176,11 @@ function nsr_live_styles() {
 }
 
 add_action('admin_enqueue_scripts', function() {
-    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.2', true);
+    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.3', true);
 });
 
 add_action('wp_enqueue_scripts', function() {
-    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.2', true);
+    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.3', true);
 });
 
 add_action('admin_menu', function () {
@@ -185,6 +199,7 @@ add_action('admin_init', function () {
     $state = nsr_live_state();
     nsr_live_maybe_expire_timer($state);
     $action = sanitize_text_field($_POST['nsr_live_action']);
+    $redirect_to = !empty($_POST['redirect_to']) ? esc_url_raw($_POST['redirect_to']) : wp_get_referer();
 
     if ($action === 'save_settings') {
         $state['show_title'] = sanitize_text_field($_POST['show_title'] ?? $state['show_title']);
@@ -247,6 +262,7 @@ add_action('admin_init', function () {
         if (isset($state['queue'][$idx])) {
             $state['current_index'] = $idx;
             $state['timer_end'] = 0;
+            $state['revealed_count'] = max($state['revealed_count'], $idx + 1);
             $state['last_action'] = 'Revealed item ' . $state['queue'][$idx]['item_no'] . '. Timer is off until you start it.';
         }
     }
@@ -266,6 +282,7 @@ add_action('admin_init', function () {
         }
         $state['current_index'] = min(max(0, count($state['queue']) - 1), intval($state['current_index']) + 1);
         $state['timer_end'] = 0;
+        $state['revealed_count'] = max($state['revealed_count'], $state['current_index'] + 1);
         $current = nsr_live_current_item($state);
         $state['last_action'] = $current ? 'Moved to next item ' . $current['item_no'] . '. Timer is off until you start it.' : 'Moved to next item.';
     }
@@ -289,6 +306,7 @@ add_action('admin_init', function () {
                     $state['last_action'] = 'SOLD OUT: item ' . $item['item_no'] . '. Auto-switched to next item. Timer is off until you start it.';
                     if ($idx < count($state['queue']) - 1) {
                         $state['current_index'] = $idx + 1;
+                        $state['revealed_count'] = max($state['revealed_count'], $state['current_index'] + 1);
                     }
                     $state['timer_end'] = 0;
                 } else {
@@ -298,10 +316,90 @@ add_action('admin_init', function () {
         }
     }
 
+    if ($action === 'go_live_again') {
+        $recent_idx = intval($_POST['recent_idx'] ?? -1);
+        if (isset($state['recent'][$recent_idx])) {
+            $r = $state['recent'][$recent_idx];
+            $found_idx = -1;
+            foreach ($state['queue'] as $idx => $item) {
+                if ($item['item_no'] === $r['item_no']) {
+                    $found_idx = $idx;
+                    break;
+                }
+            }
+
+            if ($found_idx >= 0) {
+                $state['current_index'] = $found_idx;
+            } else {
+                $state['queue'][] = array(
+                    'item_no' => $r['item_no'],
+                    'title'   => $r['title'],
+                    'source'  => isset($r['source']) ? $r['source'] : 'Mixed',
+                    'retail'  => isset($r['retail']) ? (float)$r['retail'] : 0,
+                    'live'    => isset($r['live']) ? (float)$r['live'] : 0,
+                    'qty'     => isset($r['qty']) ? intval($r['qty']) : 1,
+                    'claimed' => isset($r['claimed']) ? intval($r['claimed']) : 0,
+                    'barcode' => isset($r['barcode']) ? $r['barcode'] : '',
+                    'note'    => isset($r['note']) ? $r['note'] : '',
+                );
+                $state['current_index'] = count($state['queue']) - 1;
+            }
+
+            $state['timer_end'] = 0;
+            $state['last_action'] = 'Brought item ' . $r['item_no'] . ' live again. Timer is off until you start it.';
+        }
+    }
+
     nsr_live_save($state);
-    wp_safe_redirect(wp_get_referer() ?: admin_url('admin.php?page=nsr-live'));
+    wp_safe_redirect($redirect_to ?: admin_url('admin.php?page=nsr-live'));
     exit;
 });
+
+add_action('wp_ajax_nsr_live_state', function() {
+    $state = nsr_live_state();
+    nsr_live_maybe_expire_timer($state);
+    $current = nsr_live_current_item($state);
+
+    wp_send_json_success(array(
+        'is_live' => intval($state['is_live']),
+        'timer_end' => intval($state['timer_end']),
+        'current_item_no' => $current ? $current['item_no'] : '',
+        'claims_total' => intval($state['claims_total']),
+        'total_savings' => (float)$state['total_savings'],
+        'signature' => md5(wp_json_encode(array(
+            'is_live' => $state['is_live'],
+            'timer_end' => $state['timer_end'],
+            'current_index' => $state['current_index'],
+            'claims_total' => $state['claims_total'],
+            'total_savings' => $state['total_savings'],
+            'queue' => $state['queue'],
+            'recent' => $state['recent'],
+        ))),
+    ));
+});
+
+function nsr_live_cue_cards($state) {
+    $cards = array();
+
+    if (!$state['is_live']) {
+        $cards[] = 'Start with: “Comment HELLO if you are here.”';
+        $cards[] = 'Ask viewers to FOLLOW the page.';
+        $cards[] = 'Ask viewers to SHARE the live.';
+    } else {
+        $cards[] = 'Remind viewers to type the ITEM NUMBER to claim.';
+        $cards[] = 'Mention TOTAL SAVED TONIGHT.';
+        $cards[] = 'Ask viewers to FOLLOW and SHARE.';
+        if ($state['revealed_count'] > 0) {
+            $cards[] = 'Tell viewers how many items have been revealed so far.';
+        }
+    }
+
+    return $cards;
+}
+
+function nsr_live_hidden_redirect() {
+    echo '<input type="hidden" name="redirect_to" value="' . esc_attr((is_ssl() ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']) . '">';
+}
 
 function nsr_live_studio_page() {
     $state = nsr_live_state();
@@ -321,12 +419,12 @@ function nsr_live_studio_page() {
                 <h2>Show Controls</h2>
                 <div class="nsr-row">
                     <form method="post">
-                        <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); ?>
+                        <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); nsr_live_hidden_redirect(); ?>
                         <input type="hidden" name="nsr_live_action" value="start_show">
                         <button class="button button-primary">Start Show</button>
                     </form>
                     <form method="post">
-                        <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); ?>
+                        <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); nsr_live_hidden_redirect(); ?>
                         <input type="hidden" name="nsr_live_action" value="end_show">
                         <button class="button">End Show</button>
                     </form>
@@ -335,6 +433,16 @@ function nsr_live_studio_page() {
                 <p><strong>Follower Goal:</strong> <?php echo intval($state['follower_goal_current']); ?> / <?php echo intval($state['follower_goal_target']); ?></p>
                 <p><strong>Next Auto Item #:</strong> <?php echo intval($state['next_item_no']); ?></p>
                 <p><strong>Current Timer:</strong> <?php echo $timer_left > 0 ? gmdate('i:s', $timer_left) : 'OFF'; ?></p>
+                <p><strong>Items Revealed:</strong> <?php echo intval($state['revealed_count']); ?> / <?php echo intval(count($state['queue'])); ?></p>
+
+                <div class="nsr-cue-box">
+                    <h3>🎤 Host Cue Cards</h3>
+                    <ul class="nsr-cue-list">
+                        <?php foreach (nsr_live_cue_cards($state) as $cue): ?>
+                            <li><?php echo esc_html($cue); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
             </div>
 
             <div class="nsr-card">
@@ -353,21 +461,21 @@ function nsr_live_studio_page() {
 
                 <div class="nsr-row wrap-buttons">
                     <form method="post">
-                        <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); ?>
+                        <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); nsr_live_hidden_redirect(); ?>
                         <input type="hidden" name="nsr_live_action" value="reveal_item">
                         <input type="hidden" name="idx" value="<?php echo intval($state['current_index']); ?>">
                         <button class="button button-primary">Reveal Item</button>
                     </form>
 
                     <form method="post">
-                        <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); ?>
+                        <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); nsr_live_hidden_redirect(); ?>
                         <input type="hidden" name="nsr_live_action" value="start_timer">
                         <input type="hidden" name="seconds" value="45">
                         <button class="button">Start Timer</button>
                     </form>
 
                     <form method="post">
-                        <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); ?>
+                        <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); nsr_live_hidden_redirect(); ?>
                         <input type="hidden" name="nsr_live_action" value="next_item">
                         <button class="button">Next Item</button>
                     </form>
@@ -383,7 +491,7 @@ function nsr_live_studio_page() {
 
                 <div class="nsr-row wrap-buttons">
                     <form method="post">
-                        <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); ?>
+                        <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); nsr_live_hidden_redirect(); ?>
                         <input type="hidden" name="nsr_live_action" value="simulate_claim">
                         <input type="hidden" name="idx" value="<?php echo intval($state['current_index']); ?>">
                         <input type="hidden" name="claim_qty" value="1">
@@ -391,7 +499,7 @@ function nsr_live_studio_page() {
                     </form>
 
                     <form method="post">
-                        <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); ?>
+                        <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); nsr_live_hidden_redirect(); ?>
                         <input type="hidden" name="nsr_live_action" value="simulate_claim">
                         <input type="hidden" name="idx" value="<?php echo intval($state['current_index']); ?>">
                         <input type="hidden" name="claim_qty" value="2">
@@ -414,8 +522,21 @@ function nsr_live_studio_page() {
                 <h2>Recent Deals</h2>
                 <?php $recent = nsr_live_recent($state); ?>
                 <?php if (!$recent): ?><p>No recent deals yet.</p><?php endif; ?>
-                <?php foreach ($recent as $r): ?>
-                    <div class="nsr-list-row"><?php echo esc_html($r['item_no'] . ' – ' . $r['title'] . ' – ' . $r['status']); ?></div>
+                <?php
+                $full_recent = array_reverse($state['recent']);
+                foreach ($full_recent as $display_idx => $r):
+                    $real_idx = count($state['recent']) - 1 - $display_idx;
+                ?>
+                    <div class="nsr-list-row">
+                        <div><?php echo esc_html($r['item_no'] . ' – ' . $r['title'] . ' – ' . $r['status']); ?></div>
+                        <form method="post" class="nsr-golive-btn">
+                            <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); nsr_live_hidden_redirect(); ?>
+                            <input type="hidden" name="nsr_live_action" value="go_live_again">
+                            <input type="hidden" name="recent_idx" value="<?php echo intval($real_idx); ?>">
+                            <button class="button button-small">Go Live Again</button>
+                        </form>
+                    </div>
+                    <?php if ($display_idx >= 4) break; ?>
                 <?php endforeach; ?>
             </div>
 
@@ -444,8 +565,9 @@ function nsr_live_queue_page() {
             <div class="nsr-card">
                 <h2>Add Queue Item</h2>
                 <p><strong>Auto Item # Preview:</strong> <?php echo intval($state['next_item_no']); ?> (leave Item # blank to use this)</p>
+
                 <form method="post" class="nsr-form-grid">
-                    <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); ?>
+                    <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); nsr_live_hidden_redirect(); ?>
                     <input type="hidden" name="nsr_live_action" value="add_queue_item">
 
                     <label>Item # (optional)
@@ -453,7 +575,7 @@ function nsr_live_queue_page() {
                     </label>
 
                     <label>Title
-                        <input type="text" name="title" required>
+                        <input type="text" name="title" required autofocus>
                     </label>
 
                     <label>Source
@@ -532,7 +654,7 @@ function nsr_live_queue_page() {
                                 <td><?php echo esc_html($item['barcode']); ?></td>
                                 <td>
                                     <form method="post">
-                                        <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); ?>
+                                        <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); nsr_live_hidden_redirect(); ?>
                                         <input type="hidden" name="nsr_live_action" value="delete_queue_item">
                                         <input type="hidden" name="idx" value="<?php echo intval($idx); ?>">
                                         <button class="button button-small">Delete</button>
@@ -542,6 +664,7 @@ function nsr_live_queue_page() {
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+                <p class="nsr-small">Drag-and-drop queue order is planned for the next upgrade.</p>
             <?php endif; ?>
         </div>
     </div>
@@ -558,7 +681,7 @@ function nsr_live_settings_page() {
         <h1>NSR Live Settings</h1>
         <div class="nsr-card">
             <form method="post" class="nsr-form-grid">
-                <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); ?>
+                <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); nsr_live_hidden_redirect(); ?>
                 <input type="hidden" name="nsr_live_action" value="save_settings">
 
                 <label>Show Title
@@ -603,8 +726,23 @@ function nsr_live_page_shortcode() {
 
     ob_start();
     nsr_live_styles();
+    $signature = md5(wp_json_encode(array(
+        'is_live' => $state['is_live'],
+        'timer_end' => $state['timer_end'],
+        'current_index' => $state['current_index'],
+        'claims_total' => $state['claims_total'],
+        'total_savings' => $state['total_savings'],
+        'queue' => $state['queue'],
+        'recent' => $state['recent'],
+    )));
     ?>
-    <div class="nsr-front-wrap" data-mode="<?php echo $state['is_live'] ? 'live' : 'showcase'; ?>">
+    <div
+        class="nsr-front-wrap"
+        data-mode="<?php echo $state['is_live'] ? 'live' : 'showcase'; ?>"
+        data-signature="<?php echo esc_attr($signature); ?>"
+        data-ajax="<?php echo esc_url(admin_url('admin-ajax.php')); ?>"
+        data-timer-end="<?php echo intval($state['timer_end']); ?>"
+    >
         <div class="nsr-hero">
             <div class="nsr-video-box">
                 <div class="nsr-video-placeholder"><?php echo $state['is_live'] ? 'LIVE VIDEO AREA' : 'AUTO SHOWCASE MODE'; ?></div>
@@ -634,9 +772,9 @@ function nsr_live_page_shortcode() {
                     <div class="nsr-claim-hint">Type <?php echo esc_html($current['item_no']); ?> to claim</div>
 
                     <?php if ($timer_left > 0): ?>
-                        <div class="nsr-timer">⏱ <?php echo esc_html(gmdate('i:s', $timer_left)); ?></div>
+                        <div class="nsr-timer" id="nsr-live-timer">⏱ <?php echo esc_html(gmdate('i:s', $timer_left)); ?></div>
                     <?php else: ?>
-                        <div class="nsr-timer off">Timer off until host starts it</div>
+                        <div class="nsr-timer off" id="nsr-live-timer">Timer off until host starts it</div>
                     <?php endif; ?>
 
                     <div class="nsr-stock <?php echo $available <= 2 ? 'low' : ''; ?>">
@@ -644,7 +782,7 @@ function nsr_live_page_shortcode() {
                         if ($available <= 0) echo '🔥 SOLD OUT 🔥';
                         elseif ($available == 1) echo '⚠ LAST ITEM ⚠';
                         elseif ($available == 2) echo '⚠ ONLY 2 LEFT ⚠';
-                        else echo $available . ' left';
+                        else echo $available . ' available';
                         ?>
                     </div>
 
@@ -657,7 +795,7 @@ function nsr_live_page_shortcode() {
                 <div class="nsr-stats-grid">
                     <div class="nsr-stat"><strong>Top Savers</strong><span>Live board in next upgrade</span></div>
                     <div class="nsr-stat"><strong>Total Savings</strong><span><?php echo esc_html(nsr_live_format_money($state['total_savings'])); ?></span></div>
-                    <div class="nsr-stat"><strong>Deal of Night</strong><span>Enabled next upgrade</span></div>
+                    <div class="nsr-stat"><strong>Items Revealed</strong><span><?php echo intval($state['revealed_count']); ?> / <?php echo intval(count($state['queue'])); ?></span></div>
                     <div class="nsr-stat"><strong>Follower Goal</strong><span><?php echo intval($state['follower_goal_current']); ?> / <?php echo intval($state['follower_goal_target']); ?></span></div>
                 </div>
             </div>
