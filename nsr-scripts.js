@@ -29,6 +29,45 @@ document.addEventListener('DOMContentLoaded', function () {
     if (btn) btn.click();
   });
 
+  function formatCountdown(secondsLeft) {
+    const mins = Math.floor(secondsLeft / 60);
+    const secs = secondsLeft % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }
+
+  function setupStudioTimer() {
+    const controlCard = Array.from(document.querySelectorAll('.nsr-card')).find(card =>
+      card.textContent.includes('Show Controls')
+    );
+    if (!controlCard) return;
+
+    const timerLine = Array.from(controlCard.querySelectorAll('p')).find(p =>
+      p.textContent.includes('Current Timer:')
+    );
+    if (!timerLine) return;
+
+    function extractServerValue() {
+      const txt = timerLine.textContent || '';
+      const match = txt.match(/Current Timer:\s*([0-9]{2}):([0-9]{2})/);
+      if (!match) return null;
+      return (parseInt(match[1], 10) * 60) + parseInt(match[2], 10);
+    }
+
+    let studioSecondsLeft = extractServerValue();
+
+    setInterval(() => {
+      if (studioSecondsLeft === null || studioSecondsLeft <= 0) return;
+      studioSecondsLeft -= 1;
+      if (studioSecondsLeft <= 0) {
+        timerLine.innerHTML = '<strong>Current Timer:</strong> OFF';
+      } else {
+        timerLine.innerHTML = '<strong>Current Timer:</strong> ' + formatCountdown(studioSecondsLeft);
+      }
+    }, 1000);
+  }
+
+  setupStudioTimer();
+
   const wrap = document.querySelector('.nsr-front-wrap');
   if (!wrap) return;
 
@@ -38,19 +77,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const timerEl = document.getElementById('nsr-live-timer');
 
-  function formatCountdown(secondsLeft) {
-    const mins = Math.floor(secondsLeft / 60);
-    const secs = secondsLeft % 60;
-    return `⏱ ${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-  }
-
-  function tickTimer() {
+  function tickLiveTimer() {
     if (!timerEl) return;
 
     if (!timerEnd || timerEnd <= 0) {
-      if (!timerEl.classList.contains('off')) {
-        timerEl.classList.add('off');
-      }
+      timerEl.classList.add('off');
       timerEl.textContent = 'Timer off until host starts it';
       return;
     }
@@ -65,18 +96,21 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     timerEl.classList.remove('off');
-    timerEl.textContent = formatCountdown(left);
+    timerEl.textContent = `⏱ ${formatCountdown(left)}`;
   }
 
-  tickTimer();
-  setInterval(tickTimer, 1000);
+  tickLiveTimer();
+  setInterval(tickLiveTimer, 1000);
 
   function pollState() {
     if (!ajaxUrl) return;
 
     const url = `${ajaxUrl}?action=nsr_live_state&_=${Date.now()}`;
 
-    fetch(url, { credentials: 'same-origin' })
+    fetch(url, {
+      credentials: 'same-origin',
+      cache: 'no-store'
+    })
       .then(r => r.json())
       .then(data => {
         if (!data || !data.success || !data.data) return;
@@ -94,5 +128,5 @@ document.addEventListener('DOMContentLoaded', function () {
       .catch(() => {});
   }
 
-  setInterval(pollState, 3000);
+  setInterval(pollState, 2000);
 });
