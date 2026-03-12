@@ -2,13 +2,13 @@
 /*
 Plugin Name: Never Say Retail Live Engine
 Description: Live sale system for Never Say Retail.
-Version: 4.3.1
+Version: 4.4
 Update URI: https://github.com/djgap2000/never-say-retail-live-engine
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('NSR_LIVE_OPT', 'nsr_live_state_v43');
+define('NSR_LIVE_OPT', 'nsr_live_state_v44');
 
 function nsr_live_default_state() {
     return array(
@@ -27,6 +27,7 @@ function nsr_live_default_state() {
         'recent' => array(),
         'queue' => array(),
         'last_action' => '',
+        'scanner_draft' => array(),
     );
 }
 
@@ -127,7 +128,7 @@ function nsr_live_styles() {
         .nsr-current-no{font-weight:800;font-size:28px;letter-spacing:.04em}
         .nsr-form-grid{display:grid;grid-template-columns:repeat(2,minmax(180px,1fr));gap:14px}
         .nsr-form-grid label{display:flex;flex-direction:column;gap:6px;font-weight:600}
-        .nsr-form-grid input,.nsr-form-grid select{padding:8px}
+        .nsr-form-grid input,.nsr-form-grid select,.nsr-form-grid textarea{padding:8px}
         .nsr-list-row{padding:10px 0;border-top:1px solid #eee}
         .nsr-list-row:first-child{border-top:none}
         .nsr-small{font-size:12px;color:#666}
@@ -135,6 +136,10 @@ function nsr_live_styles() {
         .nsr-cue-box h3{margin:0 0 8px 0}
         .nsr-cue-list{margin:0;padding-left:18px}
         .nsr-golive-btn{margin-top:8px}
+        .nsr-scanner-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:16px}
+        .nsr-scan-input{font-size:24px;font-weight:700;padding:12px}
+        .nsr-draft-badge{display:inline-block;background:#111827;color:#fff;padding:6px 10px;border-radius:999px;font-weight:800;margin-bottom:10px}
+        .nsr-highlight{background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:12px}
 
         .nsr-front-wrap{max-width:1100px;margin:0 auto;padding:20px}
         .nsr-hero{display:grid;grid-template-columns:1.15fr .85fr;gap:20px}
@@ -167,7 +172,7 @@ function nsr_live_styles() {
 
         @keyframes nsrPulse{0%{transform:scale(1)}50%{transform:scale(1.02)}100%{transform:scale(1)}}
         @media (max-width:900px){
-            .nsr-admin-grid,.nsr-admin-grid.second,.nsr-hero,.nsr-lists,.nsr-stats-grid,.nsr-form-grid{grid-template-columns:1fr}
+            .nsr-admin-grid,.nsr-admin-grid.second,.nsr-hero,.nsr-lists,.nsr-stats-grid,.nsr-form-grid,.nsr-scanner-grid{grid-template-columns:1fr}
             .nsr-video-box{min-height:220px}
             .nsr-price-drop .live{font-size:28px}
         }
@@ -176,19 +181,68 @@ function nsr_live_styles() {
 }
 
 add_action('admin_enqueue_scripts', function() {
-    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.3', true);
+    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.4', true);
 });
 
 add_action('wp_enqueue_scripts', function() {
-    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.3', true);
+    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.4', true);
 });
 
 add_action('admin_menu', function () {
     add_menu_page('NSR Live', 'NSR Live', 'manage_options', 'nsr-live', 'nsr_live_studio_page', 'dashicons-video-alt3', 56);
     add_submenu_page('nsr-live', 'Live Studio', 'Live Studio', 'manage_options', 'nsr-live', 'nsr_live_studio_page');
     add_submenu_page('nsr-live', 'Queue', 'Queue', 'manage_options', 'nsr-live-queue', 'nsr_live_queue_page');
+    add_submenu_page('nsr-live', 'Scanner', 'Scanner', 'manage_options', 'nsr-live-scanner', 'nsr_live_scanner_page');
     add_submenu_page('nsr-live', 'Settings', 'Settings', 'manage_options', 'nsr-live-settings', 'nsr_live_settings_page');
 });
+
+function nsr_live_hidden_redirect() {
+    echo '<input type="hidden" name="redirect_to" value="' . esc_attr((is_ssl() ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']) . '">';
+}
+
+function nsr_live_suggest_price($retail) {
+    $retail = (float)$retail;
+    if ($retail <= 0) return 5.00;
+    if ($retail < 10) return 3.00;
+    if ($retail < 20) return 5.00;
+    if ($retail < 35) return 10.00;
+    if ($retail < 50) return 15.00;
+    if ($retail < 75) return 25.00;
+    if ($retail < 100) return 35.00;
+    return round($retail * 0.35);
+}
+
+function nsr_live_mock_lookup($barcode) {
+    $barcode = preg_replace('/\D+/', '', (string)$barcode);
+    if ($barcode === '') return array();
+
+    $last4 = substr($barcode, -4);
+    $seed = intval(substr($barcode, -2));
+    $retail = 10 + ($seed * 2);
+    if ($retail > 149) $retail = 149;
+
+    $titles = array(
+        'Kitchen Appliance',
+        'Home Gadget',
+        'Tool Set',
+        'Electronics Accessory',
+        'Storage Item',
+        'Small Appliance',
+        'Home Decor',
+        'Office Item'
+    );
+    $sources = array('Target', 'Amazon', "Sam's", 'DG', 'Mixed');
+
+    return array(
+        'barcode' => $barcode,
+        'title' => $titles[$seed % count($titles)] . ' #' . $last4,
+        'retail' => (float)$retail,
+        'live' => (float)nsr_live_suggest_price($retail),
+        'qty' => 1,
+        'source' => $sources[$seed % count($sources)],
+        'note' => 'Scanner draft – review before adding',
+    );
+}
 
 add_action('admin_init', function () {
     if (!current_user_can('manage_options')) return;
@@ -208,6 +262,50 @@ add_action('admin_init', function () {
         $state['follower_goal_target'] = max(1, intval($_POST['follower_goal_target'] ?? 1000));
         $state['next_item_no'] = max(1, intval($_POST['next_item_no'] ?? $state['next_item_no']));
         $state['last_action'] = 'Settings saved.';
+    }
+
+    if ($action === 'scanner_lookup') {
+        $barcode = sanitize_text_field($_POST['scanner_barcode'] ?? '');
+        $draft = nsr_live_mock_lookup($barcode);
+
+        if (!empty($draft)) {
+            $state['scanner_draft'] = $draft;
+            $state['last_action'] = 'Scanner draft loaded for barcode ' . $draft['barcode'] . '. Review and add to queue.';
+        } else {
+            $state['scanner_draft'] = array();
+            $state['last_action'] = 'No barcode detected. Scan again.';
+        }
+    }
+
+    if ($action === 'scanner_clear') {
+        $state['scanner_draft'] = array();
+        $state['last_action'] = 'Scanner draft cleared.';
+    }
+
+    if ($action === 'scanner_add_to_queue') {
+        $draft = array(
+            'item_no' => sanitize_text_field($_POST['item_no'] ?? ''),
+            'title'   => sanitize_text_field($_POST['title'] ?? ''),
+            'source'  => sanitize_text_field($_POST['source'] ?? 'Mixed'),
+            'retail'  => (float)($_POST['retail'] ?? 0),
+            'live'    => (float)($_POST['live'] ?? 0),
+            'qty'     => max(1, intval($_POST['qty'] ?? 1)),
+            'claimed' => 0,
+            'barcode' => sanitize_text_field($_POST['barcode'] ?? ''),
+            'note'    => sanitize_text_field($_POST['note'] ?? ''),
+        );
+
+        if ($draft['item_no'] === '') {
+            $draft['item_no'] = nsr_live_auto_item_number($state);
+        }
+
+        if ($draft['title'] !== '') {
+            $state['queue'][] = $draft;
+            $state['scanner_draft'] = array();
+            $state['last_action'] = 'Scanned item ' . $draft['item_no'] . ' added to queue.';
+        } else {
+            $state['last_action'] = 'Title is required before adding scanner draft.';
+        }
     }
 
     if ($action === 'add_queue_item') {
@@ -397,10 +495,6 @@ function nsr_live_cue_cards($state) {
     return $cards;
 }
 
-function nsr_live_hidden_redirect() {
-    echo '<input type="hidden" name="redirect_to" value="' . esc_attr((is_ssl() ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']) . '">';
-}
-
 function nsr_live_studio_page() {
     $state = nsr_live_state();
     nsr_live_maybe_expire_timer($state);
@@ -456,7 +550,7 @@ function nsr_live_studio_page() {
                     <p><strong>Inventory:</strong> <?php echo nsr_live_stock_left($current); ?> left</p>
                     <p><strong>Keyboard Shortcuts:</strong> R reveal • T timer • N next</p>
                 <?php else: ?>
-                    <p>No queue items yet. Add them under Queue.</p>
+                    <p>No queue items yet. Add them under Queue or Scanner.</p>
                 <?php endif; ?>
 
                 <div class="nsr-row wrap-buttons">
@@ -520,10 +614,10 @@ function nsr_live_studio_page() {
         <div class="nsr-admin-grid second">
             <div class="nsr-card">
                 <h2>Recent Deals</h2>
-                <?php $recent = nsr_live_recent($state); ?>
-                <?php if (!$recent): ?><p>No recent deals yet.</p><?php endif; ?>
                 <?php
                 $full_recent = array_reverse($state['recent']);
+                if (!$full_recent): ?><p>No recent deals yet.</p><?php endif; ?>
+                <?php
                 foreach ($full_recent as $display_idx => $r):
                     $real_idx = count($state['recent']) - 1 - $display_idx;
                 ?>
@@ -616,8 +710,8 @@ function nsr_live_queue_page() {
 
             <div class="nsr-card">
                 <h2>Quick Add by Barcode</h2>
-                <p>Scan into the barcode field, fill title + prices, then add to queue.</p>
-                <p>This build stores the barcode. Automatic UPC lookup and stock photos come in the next upgrade.</p>
+                <p>For the new faster workflow, use <strong>NSR Live → Scanner</strong>.</p>
+                <p>That page is optimized for USB and wireless keyboard-style scanners.</p>
                 <p><strong>Live recommendation:</strong> use short item numbers like 101, 102, 103 for customers. Keep the barcode in the background.</p>
             </div>
         </div>
@@ -666,6 +760,114 @@ function nsr_live_queue_page() {
                 </table>
                 <p class="nsr-small">Drag-and-drop queue order is planned for the next upgrade.</p>
             <?php endif; ?>
+        </div>
+    </div>
+    <?php
+}
+
+function nsr_live_scanner_page() {
+    $state = nsr_live_state();
+    $draft = isset($state['scanner_draft']) && is_array($state['scanner_draft']) ? $state['scanner_draft'] : array();
+
+    nsr_live_styles();
+    nsr_live_notice($state);
+    ?>
+    <div class="wrap nsr-live-wrap">
+        <h1>Scanner</h1>
+
+        <div class="nsr-scanner-grid">
+            <div class="nsr-card">
+                <h2>Scan Item</h2>
+                <p>Use your USB, wireless, or keyboard-style scanner here. The barcode field stays ready.</p>
+
+                <form method="post">
+                    <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); nsr_live_hidden_redirect(); ?>
+                    <input type="hidden" name="nsr_live_action" value="scanner_lookup">
+                    <label for="scanner_barcode"><strong>Barcode</strong></label>
+                    <input
+                        id="scanner_barcode"
+                        class="nsr-scan-input"
+                        type="text"
+                        name="scanner_barcode"
+                        autocomplete="off"
+                        autofocus
+                        placeholder="Scan barcode here"
+                    >
+                    <p style="margin-top:12px">
+                        <button class="button button-primary">Lookup Barcode</button>
+                    </p>
+                </form>
+
+                <div class="nsr-highlight">
+                    <strong>Fast workflow</strong>
+                    <p class="nsr-small" style="margin:8px 0 0 0">Scan → review result → set qty → add to queue → cursor returns to barcode.</p>
+                </div>
+            </div>
+
+            <div class="nsr-card">
+                <h2>Scanner Draft</h2>
+
+                <?php if (!empty($draft)): ?>
+                    <div class="nsr-draft-badge">READY TO REVIEW</div>
+
+                    <form method="post" class="nsr-form-grid">
+                        <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); nsr_live_hidden_redirect(); ?>
+                        <input type="hidden" name="nsr_live_action" value="scanner_add_to_queue">
+
+                        <label>Item # (optional)
+                            <input type="text" name="item_no" placeholder="<?php echo esc_attr($state['next_item_no']); ?>">
+                        </label>
+
+                        <label>Barcode
+                            <input type="text" name="barcode" value="<?php echo esc_attr($draft['barcode']); ?>">
+                        </label>
+
+                        <label>Title
+                            <input type="text" name="title" value="<?php echo esc_attr($draft['title']); ?>" required>
+                        </label>
+
+                        <label>Source
+                            <select name="source">
+                                <?php
+                                $sources = array('Target', 'Amazon', "Sam's", 'DG', 'Mixed');
+                                foreach ($sources as $source) {
+                                    echo '<option value="' . esc_attr($source) . '"' . selected($draft['source'], $source, false) . '>' . esc_html($source) . '</option>';
+                                }
+                                ?>
+                            </select>
+                        </label>
+
+                        <label>Retail
+                            <input class="nsr-retail-input" type="number" step="0.01" name="retail" value="<?php echo esc_attr($draft['retail']); ?>" required>
+                        </label>
+
+                        <label>Suggested NSR Price
+                            <input class="nsr-live-input" type="number" step="0.01" name="live" value="<?php echo esc_attr($draft['live']); ?>" required>
+                        </label>
+
+                        <label>Qty
+                            <input type="number" name="qty" value="<?php echo esc_attr($draft['qty']); ?>" min="1">
+                        </label>
+
+                        <label>Quick note
+                            <input type="text" name="note" value="<?php echo esc_attr($draft['note']); ?>">
+                        </label>
+
+                        <div>
+                            <button class="button button-primary">Add to Queue</button>
+                        </div>
+                    </form>
+
+                    <form method="post" style="margin-top:10px">
+                        <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); nsr_live_hidden_redirect(); ?>
+                        <input type="hidden" name="nsr_live_action" value="scanner_clear">
+                        <button class="button">Clear Draft</button>
+                    </form>
+                <?php else: ?>
+                    <p>No scanner draft yet.</p>
+                    <p class="nsr-small">Once you scan a barcode, the review form will appear here.</p>
+                <?php endif; ?>
+            </div>
         </div>
     </div>
     <?php
@@ -789,7 +991,7 @@ function nsr_live_page_shortcode() {
                     <button class="nsr-claim-btn">CLAIM ITEM</button>
                     <div class="nsr-auto-reminder">Type the item number to claim • Example: <?php echo esc_html($current['item_no']); ?></div>
                 <?php else: ?>
-                    <p>No live item yet. Add queue items in NSR Live → Queue.</p>
+                    <p>No live item yet. Add queue items in NSR Live → Queue or Scanner.</p>
                 <?php endif; ?>
 
                 <div class="nsr-stats-grid">
