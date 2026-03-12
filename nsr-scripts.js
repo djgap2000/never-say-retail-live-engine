@@ -69,64 +69,109 @@ document.addEventListener('DOMContentLoaded', function () {
   setupStudioTimer();
 
   const wrap = document.querySelector('.nsr-front-wrap');
-  if (!wrap) return;
+  if (wrap) {
+    const ajaxUrl = wrap.dataset.ajax;
+    let currentSignature = wrap.dataset.signature || '';
+    let timerEnd = parseInt(wrap.dataset.timerEnd || '0', 10);
+    const timerEl = document.getElementById('nsr-live-timer');
 
-  const ajaxUrl = wrap.dataset.ajax;
-  let currentSignature = wrap.dataset.signature || '';
-  let timerEnd = parseInt(wrap.dataset.timerEnd || '0', 10);
+    function tickLiveTimer() {
+      if (!timerEl) return;
 
-  const timerEl = document.getElementById('nsr-live-timer');
+      if (!timerEnd || timerEnd <= 0) {
+        timerEl.classList.add('off');
+        timerEl.textContent = 'Timer off until host starts it';
+        return;
+      }
 
-  function tickLiveTimer() {
-    if (!timerEl) return;
+      const now = Math.floor(Date.now() / 1000);
+      const left = timerEnd - now;
 
-    if (!timerEnd || timerEnd <= 0) {
-      timerEl.classList.add('off');
-      timerEl.textContent = 'Timer off until host starts it';
-      return;
+      if (left <= 0) {
+        timerEl.classList.add('off');
+        timerEl.textContent = 'Timer off until host starts it';
+        return;
+      }
+
+      timerEl.classList.remove('off');
+      timerEl.textContent = `⏱ ${formatCountdown(left)}`;
     }
 
-    const now = Math.floor(Date.now() / 1000);
-    const left = timerEnd - now;
+    tickLiveTimer();
+    setInterval(tickLiveTimer, 1000);
 
-    if (left <= 0) {
-      timerEl.classList.add('off');
-      timerEl.textContent = 'Timer off until host starts it';
-      return;
-    }
+    function pollState() {
+      if (!ajaxUrl) return;
+      const url = `${ajaxUrl}?action=nsr_live_state&_=${Date.now()}`;
 
-    timerEl.classList.remove('off');
-    timerEl.textContent = `⏱ ${formatCountdown(left)}`;
-  }
-
-  tickLiveTimer();
-  setInterval(tickLiveTimer, 1000);
-
-  function pollState() {
-    if (!ajaxUrl) return;
-
-    const url = `${ajaxUrl}?action=nsr_live_state&_=${Date.now()}`;
-
-    fetch(url, {
-      credentials: 'same-origin',
-      cache: 'no-store'
-    })
-      .then(r => r.json())
-      .then(data => {
-        if (!data || !data.success || !data.data) return;
-
-        const state = data.data;
-
-        if (typeof state.timer_end !== 'undefined') {
-          timerEnd = parseInt(state.timer_end, 10) || 0;
-        }
-
-        if (state.signature && state.signature !== currentSignature) {
-          window.location.reload();
-        }
+      fetch(url, {
+        credentials: 'same-origin',
+        cache: 'no-store'
       })
-      .catch(() => {});
+        .then(r => r.json())
+        .then(data => {
+          if (!data || !data.success || !data.data) return;
+          const state = data.data;
+
+          if (typeof state.timer_end !== 'undefined') {
+            timerEnd = parseInt(state.timer_end, 10) || 0;
+          }
+
+          if (state.signature && state.signature !== currentSignature) {
+            window.location.reload();
+          }
+        })
+        .catch(() => {});
+    }
+
+    setInterval(pollState, 2000);
   }
 
-  setInterval(pollState, 2000);
+  const scannerInput = document.getElementById('scanner_barcode');
+  if (scannerInput) {
+    scannerInput.focus();
+
+    setTimeout(() => {
+      scannerInput.focus();
+    }, 200);
+
+    let lastValue = '';
+    let scanTimer = null;
+
+    scannerInput.addEventListener('input', function () {
+      clearTimeout(scanTimer);
+      const current = scannerInput.value.trim();
+
+      // If the scanner sends a fast barcode, auto submit after a short pause.
+      scanTimer = setTimeout(() => {
+        if (current !== '' && current !== lastValue && current.length >= 8) {
+          lastValue = current;
+          const form = scannerInput.closest('form');
+          if (form) form.submit();
+        }
+      }, 200);
+    });
+  }
+
+  const retailInput = document.querySelector('.nsr-retail-input');
+  const liveInput = document.querySelector('.nsr-live-input');
+
+  function suggestPrice(retail) {
+    const r = parseFloat(retail || '0');
+    if (!r || r <= 0) return 5;
+    if (r < 10) return 3;
+    if (r < 20) return 5;
+    if (r < 35) return 10;
+    if (r < 50) return 15;
+    if (r < 75) return 25;
+    if (r < 100) return 35;
+    return Math.round(r * 0.35);
+  }
+
+  if (retailInput && liveInput) {
+    retailInput.addEventListener('change', function () {
+      const next = suggestPrice(retailInput.value);
+      liveInput.value = Number(next).toFixed(2);
+    });
+  }
 });
