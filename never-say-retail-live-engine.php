@@ -2,13 +2,13 @@
 /*
 Plugin Name: Never Say Retail Live Engine
 Description: Live sale system for Never Say Retail.
-Version: 4.4
+Version: 4.5.1
 Update URI: https://github.com/djgap2000/never-say-retail-live-engine
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('NSR_LIVE_OPT', 'nsr_live_state_v44');
+define('NSR_LIVE_OPT', 'nsr_live_state_v451');
 
 function nsr_live_default_state() {
     return array(
@@ -28,6 +28,7 @@ function nsr_live_default_state() {
         'queue' => array(),
         'last_action' => '',
         'scanner_draft' => array(),
+        'barcode_lookup_api_key' => '',
     );
 }
 
@@ -140,6 +141,9 @@ function nsr_live_styles() {
         .nsr-scan-input{font-size:24px;font-weight:700;padding:12px}
         .nsr-draft-badge{display:inline-block;background:#111827;color:#fff;padding:6px 10px;border-radius:999px;font-weight:800;margin-bottom:10px}
         .nsr-highlight{background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:12px}
+        .nsr-image-preview{margin-top:12px}
+        .nsr-image-preview img{max-width:160px;height:auto;border-radius:12px;border:1px solid #e5e7eb;display:block}
+        .nsr-api-help{background:#eff6ff;border:1px solid #93c5fd;border-radius:12px;padding:12px;margin-top:10px}
 
         .nsr-front-wrap{max-width:1100px;margin:0 auto;padding:20px}
         .nsr-hero{display:grid;grid-template-columns:1.15fr .85fr;gap:20px}
@@ -181,11 +185,11 @@ function nsr_live_styles() {
 }
 
 add_action('admin_enqueue_scripts', function() {
-    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.4', true);
+    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.5.1', true);
 });
 
 add_action('wp_enqueue_scripts', function() {
-    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.4', true);
+    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.5.1', true);
 });
 
 add_action('admin_menu', function () {
@@ -212,36 +216,112 @@ function nsr_live_suggest_price($retail) {
     return round($retail * 0.35);
 }
 
-function nsr_live_mock_lookup($barcode) {
+function nsr_live_extract_best_price($product) {
+    $prices = array();
+
+    if (!empty($product['stores']) && is_array($product['stores'])) {
+        foreach ($product['stores'] as $store) {
+            if (isset($store['price']) && is_numeric($store['price'])) {
+                $prices[] = (float)$store['price'];
+            }
+        }
+    }
+
+    if (!empty($product['price']) && is_numeric($product['price'])) {
+        $prices[] = (float)$product['price'];
+    }
+
+    if (!empty($product['lowest_recorded_price']) && is_numeric($product['lowest_recorded_price'])) {
+        $prices[] = (float)$product['lowest_recorded_price'];
+    }
+
+    if (!empty($product['highest_recorded_price']) && is_numeric($product['highest_recorded_price'])) {
+        $prices[] = (float)$product['highest_recorded_price'];
+    }
+
+    $prices = array_filter($prices, function($p){ return $p > 0; });
+    if (empty($prices)) return 0;
+
+    return min($prices);
+}
+
+function nsr_live_real_lookup($barcode, $api_key) {
     $barcode = preg_replace('/\D+/', '', (string)$barcode);
-    if ($barcode === '') return array();
+    if ($barcode === '' || $api_key === '') {
+        return array('error' => 'Missing barcode or API key.');
+    }
 
-    $last4 = substr($barcode, -4);
-    $seed = intval(substr($barcode, -2));
-    $retail = 10 + ($seed * 2);
-    if ($retail > 149) $retail = 149;
-
-    $titles = array(
-        'Kitchen Appliance',
-        'Home Gadget',
-        'Tool Set',
-        'Electronics Accessory',
-        'Storage Item',
-        'Small Appliance',
-        'Home Decor',
-        'Office Item'
-    );
-    $sources = array('Target', 'Amazon', "Sam's", 'DG', 'Mixed');
-
-    return array(
+    $url = add_query_arg(array(
         'barcode' => $barcode,
-        'title' => $titles[$seed % count($titles)] . ' #' . $last4,
-        'retail' => (float)$retail,
-        'live' => (float)nsr_live_suggest_price($retail),
-        'qty' => 1,
-        'source' => $sources[$seed % count($sources)],
-        'note' => 'Scanner draft – review before adding',
-    );
+        'formatted' => 'y',
+        'key' => $api_key,
+    ), 'https://api.barcodelookup.com/v3/products');
+
+    $response = wp_remote_get($url, array(
+        'timeout' => 20,
+        'headers' => array(
+            'Accept' => 'application/json',
+        ),
+    ));
+
+    if (is_wp_error($response)) {
+        return array('error' => 'Lookup request failed: ' . $response->get_error_message());
+    }
+
+    $code = wp_remote_retrieve_response_code($response);
+    $body = wp_remote_retrieve_body($response);
+    $json = json_decode($body, true);
+
+    if ($code !== 200 || !is_array($json)) {
+        return array('error' => 'Lookup failed. HTTP ' . $code);
+    }
+
+    if (!empty($json['products'][0]) && is_array($json['products'][0])) {
+        $p = $json['products'][0];
+
+        $retail = nsr_live_extract_best_price($p);
+        $title = '';
+        if (!empty($p['title'])) $title = $p['title'];
+        elseif (!empty($p['product_name'])) $title = $p['product_name'];
+        elseif (!empty($p['barcode_number'])) $title = 'Scanned Product #' . substr($p['barcode_number'], -4);
+        else $title = 'Scanned Product #' . substr($barcode, -4);
+
+        $image = '';
+        if (!empty($p['images']) && is_array($p['images']) && !empty($p['images'][0])) {
+            $image = esc_url_raw($p['images'][0]);
+        }
+
+        $brand = !empty($p['brand']) ? $p['brand'] : '';
+        $category = !empty($p['category']) ? $p['category'] : '';
+        $description = !empty($p['description']) ? wp_strip_all_tags($p['description']) : '';
+
+        $source = 'Mixed';
+        $text_blob = strtolower($brand . ' ' . $category . ' ' . $title);
+        if (strpos($text_blob, 'target') !== false) $source = 'Target';
+        elseif (strpos($text_blob, 'amazon') !== false) $source = 'Amazon';
+        elseif (strpos($text_blob, 'sam') !== false) $source = "Sam's";
+        elseif (strpos($text_blob, 'dollar general') !== false || strpos($text_blob, 'dg') !== false) $source = 'DG';
+
+        return array(
+            'barcode' => $barcode,
+            'title' => $title,
+            'retail' => $retail > 0 ? $retail : 0,
+            'live' => nsr_live_suggest_price($retail > 0 ? $retail : 0),
+            'qty' => 1,
+            'source' => $source,
+            'note' => $brand . ($category ? ' | ' . $category : ''),
+            'image' => $image,
+            'brand' => $brand,
+            'category' => $category,
+            'description' => $description,
+        );
+    }
+
+    if (!empty($json['message'])) {
+        return array('error' => 'Lookup message: ' . $json['message']);
+    }
+
+    return array('error' => 'No product found for that barcode.');
 }
 
 add_action('admin_init', function () {
@@ -261,19 +341,38 @@ add_action('admin_init', function () {
         $state['follower_goal_current'] = max(0, intval($_POST['follower_goal_current'] ?? 0));
         $state['follower_goal_target'] = max(1, intval($_POST['follower_goal_target'] ?? 1000));
         $state['next_item_no'] = max(1, intval($_POST['next_item_no'] ?? $state['next_item_no']));
+        $state['barcode_lookup_api_key'] = sanitize_text_field($_POST['barcode_lookup_api_key'] ?? $state['barcode_lookup_api_key']);
         $state['last_action'] = 'Settings saved.';
     }
 
     if ($action === 'scanner_lookup') {
         $barcode = sanitize_text_field($_POST['scanner_barcode'] ?? '');
-        $draft = nsr_live_mock_lookup($barcode);
+        $api_key = trim((string)$state['barcode_lookup_api_key']);
 
-        if (!empty($draft)) {
-            $state['scanner_draft'] = $draft;
-            $state['last_action'] = 'Scanner draft loaded for barcode ' . $draft['barcode'] . '. Review and add to queue.';
-        } else {
+        if ($api_key === '') {
             $state['scanner_draft'] = array();
-            $state['last_action'] = 'No barcode detected. Scan again.';
+            $state['last_action'] = 'Add your Barcode Lookup API key in NSR Live → Settings first.';
+        } else {
+            $draft = nsr_live_real_lookup($barcode, $api_key);
+            if (!empty($draft['error'])) {
+                $state['scanner_draft'] = array(
+                    'barcode' => preg_replace('/\D+/', '', $barcode),
+                    'title' => '',
+                    'retail' => 0,
+                    'live' => 5,
+                    'qty' => 1,
+                    'source' => 'Mixed',
+                    'note' => 'Manual review needed',
+                    'image' => '',
+                    'brand' => '',
+                    'category' => '',
+                    'description' => '',
+                );
+                $state['last_action'] = $draft['error'];
+            } else {
+                $state['scanner_draft'] = $draft;
+                $state['last_action'] = 'Real product lookup loaded for barcode ' . $draft['barcode'] . '. Review and add to queue.';
+            }
         }
     }
 
@@ -293,6 +392,10 @@ add_action('admin_init', function () {
             'claimed' => 0,
             'barcode' => sanitize_text_field($_POST['barcode'] ?? ''),
             'note'    => sanitize_text_field($_POST['note'] ?? ''),
+            'image'   => esc_url_raw($_POST['image'] ?? ''),
+            'brand'   => sanitize_text_field($_POST['brand'] ?? ''),
+            'category'=> sanitize_text_field($_POST['category'] ?? ''),
+            'description' => sanitize_text_field($_POST['description'] ?? ''),
         );
 
         if ($draft['item_no'] === '') {
@@ -711,7 +814,7 @@ function nsr_live_queue_page() {
             <div class="nsr-card">
                 <h2>Quick Add by Barcode</h2>
                 <p>For the new faster workflow, use <strong>NSR Live → Scanner</strong>.</p>
-                <p>That page is optimized for USB and wireless keyboard-style scanners.</p>
+                <p>That page now supports a real Barcode Lookup API key from Settings.</p>
                 <p><strong>Live recommendation:</strong> use short item numbers like 101, 102, 103 for customers. Keep the barcode in the background.</p>
             </div>
         </div>
@@ -802,6 +905,13 @@ function nsr_live_scanner_page() {
                     <strong>Fast workflow</strong>
                     <p class="nsr-small" style="margin:8px 0 0 0">Scan → review result → set qty → add to queue → cursor returns to barcode.</p>
                 </div>
+
+                <?php if (empty($state['barcode_lookup_api_key'])): ?>
+                    <div class="nsr-api-help">
+                        <strong>Next step:</strong>
+                        <p class="nsr-small" style="margin:6px 0 0 0">Add your Barcode Lookup API key in <strong>NSR Live → Settings</strong> before scanning for real product matches.</p>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <div class="nsr-card">
@@ -810,9 +920,20 @@ function nsr_live_scanner_page() {
                 <?php if (!empty($draft)): ?>
                     <div class="nsr-draft-badge">READY TO REVIEW</div>
 
+                    <?php if (!empty($draft['image'])): ?>
+                        <div class="nsr-image-preview">
+                            <img src="<?php echo esc_url($draft['image']); ?>" alt="">
+                        </div>
+                    <?php endif; ?>
+
                     <form method="post" class="nsr-form-grid">
                         <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); nsr_live_hidden_redirect(); ?>
                         <input type="hidden" name="nsr_live_action" value="scanner_add_to_queue">
+
+                        <input type="hidden" name="image" value="<?php echo esc_attr($draft['image'] ?? ''); ?>">
+                        <input type="hidden" name="brand" value="<?php echo esc_attr($draft['brand'] ?? ''); ?>">
+                        <input type="hidden" name="category" value="<?php echo esc_attr($draft['category'] ?? ''); ?>">
+                        <input type="hidden" name="description" value="<?php echo esc_attr($draft['description'] ?? ''); ?>">
 
                         <label>Item # (optional)
                             <input type="text" name="item_no" placeholder="<?php echo esc_attr($state['next_item_no']); ?>">
@@ -906,10 +1027,19 @@ function nsr_live_settings_page() {
                     <input type="number" name="next_item_no" value="<?php echo intval($state['next_item_no']); ?>">
                 </label>
 
+                <label>Barcode Lookup API Key
+                    <input type="text" name="barcode_lookup_api_key" value="<?php echo esc_attr($state['barcode_lookup_api_key']); ?>" autocomplete="off">
+                </label>
+
                 <div>
                     <button class="button button-primary">Save Settings</button>
                 </div>
             </form>
+
+            <div class="nsr-api-help">
+                <strong>Barcode Lookup setup</strong>
+                <p class="nsr-small" style="margin:6px 0 0 0">Paste your API key here, save settings, then go to <strong>NSR Live → Scanner</strong> and scan an item.</p>
+            </div>
 
             <p>Shortcode: <code>[nsr_live_page]</code></p>
         </div>
