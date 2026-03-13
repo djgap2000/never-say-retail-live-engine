@@ -130,10 +130,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const scannerInput = document.getElementById('scanner_barcode');
   if (scannerInput) {
     scannerInput.focus();
-
-    setTimeout(() => {
-      scannerInput.focus();
-    }, 200);
+    setTimeout(() => scannerInput.focus(), 200);
 
     let lastValue = '';
     let scanTimer = null;
@@ -142,7 +139,6 @@ document.addEventListener('DOMContentLoaded', function () {
       clearTimeout(scanTimer);
       const current = scannerInput.value.trim();
 
-      // If the scanner sends a fast barcode, auto submit after a short pause.
       scanTimer = setTimeout(() => {
         if (current !== '' && current !== lastValue && current.length >= 8) {
           lastValue = current;
