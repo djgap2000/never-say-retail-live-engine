@@ -2,13 +2,13 @@
 /*
 Plugin Name: Never Say Retail Live Engine
 Description: Live sale system for Never Say Retail.
-Version: 4.5.1
+Version: 4.6
 Update URI: https://github.com/djgap2000/never-say-retail-live-engine
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('NSR_LIVE_OPT', 'nsr_live_state_v451');
+define('NSR_LIVE_OPT', 'nsr_live_state_v46');
 
 function nsr_live_default_state() {
     return array(
@@ -29,6 +29,7 @@ function nsr_live_default_state() {
         'last_action' => '',
         'scanner_draft' => array(),
         'barcode_lookup_api_key' => '',
+        'upcdatabase_api_key' => '',
     );
 }
 
@@ -185,11 +186,11 @@ function nsr_live_styles() {
 }
 
 add_action('admin_enqueue_scripts', function() {
-    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.5.1', true);
+    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.6', true);
 });
 
 add_action('wp_enqueue_scripts', function() {
-    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.5.1', true);
+    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.6', true);
 });
 
 add_action('admin_menu', function () {
@@ -219,6 +220,20 @@ function nsr_live_suggest_price($retail) {
 function nsr_live_extract_best_price($product) {
     $prices = array();
 
+    $possible_fields = array(
+        'price',
+        'lowest_recorded_price',
+        'highest_recorded_price',
+        'avg_price',
+        'offer_price'
+    );
+
+    foreach ($possible_fields as $field) {
+        if (!empty($product[$field]) && is_numeric($product[$field])) {
+            $prices[] = (float)$product[$field];
+        }
+    }
+
     if (!empty($product['stores']) && is_array($product['stores'])) {
         foreach ($product['stores'] as $store) {
             if (isset($store['price']) && is_numeric($store['price'])) {
@@ -227,28 +242,16 @@ function nsr_live_extract_best_price($product) {
         }
     }
 
-    if (!empty($product['price']) && is_numeric($product['price'])) {
-        $prices[] = (float)$product['price'];
-    }
-
-    if (!empty($product['lowest_recorded_price']) && is_numeric($product['lowest_recorded_price'])) {
-        $prices[] = (float)$product['lowest_recorded_price'];
-    }
-
-    if (!empty($product['highest_recorded_price']) && is_numeric($product['highest_recorded_price'])) {
-        $prices[] = (float)$product['highest_recorded_price'];
-    }
-
     $prices = array_filter($prices, function($p){ return $p > 0; });
     if (empty($prices)) return 0;
 
     return min($prices);
 }
 
-function nsr_live_real_lookup($barcode, $api_key) {
+function nsr_live_real_lookup_barcodelookup($barcode, $api_key) {
     $barcode = preg_replace('/\D+/', '', (string)$barcode);
     if ($barcode === '' || $api_key === '') {
-        return array('error' => 'Missing barcode or API key.');
+        return array('error' => 'Missing barcode or Barcode Lookup API key.');
     }
 
     $url = add_query_arg(array(
@@ -259,13 +262,11 @@ function nsr_live_real_lookup($barcode, $api_key) {
 
     $response = wp_remote_get($url, array(
         'timeout' => 20,
-        'headers' => array(
-            'Accept' => 'application/json',
-        ),
+        'headers' => array('Accept' => 'application/json'),
     ));
 
     if (is_wp_error($response)) {
-        return array('error' => 'Lookup request failed: ' . $response->get_error_message());
+        return array('error' => 'Barcode Lookup request failed: ' . $response->get_error_message());
     }
 
     $code = wp_remote_retrieve_response_code($response);
@@ -273,55 +274,136 @@ function nsr_live_real_lookup($barcode, $api_key) {
     $json = json_decode($body, true);
 
     if ($code !== 200 || !is_array($json)) {
-        return array('error' => 'Lookup failed. HTTP ' . $code);
+        return array('error' => 'Barcode Lookup failed. HTTP ' . $code);
     }
 
-    if (!empty($json['products'][0]) && is_array($json['products'][0])) {
-        $p = $json['products'][0];
+    if (empty($json['products'][0]) || !is_array($json['products'][0])) {
+        return array('error' => 'Barcode Lookup: no product found.');
+    }
 
-        $retail = nsr_live_extract_best_price($p);
-        $title = '';
-        if (!empty($p['title'])) $title = $p['title'];
-        elseif (!empty($p['product_name'])) $title = $p['product_name'];
-        elseif (!empty($p['barcode_number'])) $title = 'Scanned Product #' . substr($p['barcode_number'], -4);
-        else $title = 'Scanned Product #' . substr($barcode, -4);
+    $p = $json['products'][0];
+    $retail = nsr_live_extract_best_price($p);
 
-        $image = '';
-        if (!empty($p['images']) && is_array($p['images']) && !empty($p['images'][0])) {
-            $image = esc_url_raw($p['images'][0]);
+    $title = '';
+    if (!empty($p['title'])) $title = $p['title'];
+    elseif (!empty($p['product_name'])) $title = $p['product_name'];
+    else $title = 'Scanned Product #' . substr($barcode, -4);
+
+    $image = '';
+    if (!empty($p['images']) && is_array($p['images']) && !empty($p['images'][0])) {
+        $image = esc_url_raw($p['images'][0]);
+    }
+
+    $brand = !empty($p['brand']) ? $p['brand'] : '';
+    $category = !empty($p['category']) ? $p['category'] : '';
+    $description = !empty($p['description']) ? wp_strip_all_tags($p['description']) : '';
+
+    return array(
+        'provider' => 'Barcode Lookup',
+        'barcode' => $barcode,
+        'title' => $title,
+        'retail' => $retail > 0 ? $retail : 0,
+        'live' => nsr_live_suggest_price($retail > 0 ? $retail : 0),
+        'qty' => 1,
+        'source' => 'Mixed',
+        'note' => trim($brand . ($category ? ' | ' . $category : '')),
+        'image' => $image,
+        'brand' => $brand,
+        'category' => $category,
+        'description' => $description,
+    );
+}
+
+function nsr_live_real_lookup_upcitemdb($barcode) {
+    $barcode = preg_replace('/\D+/', '', (string)$barcode);
+    if ($barcode === '') {
+        return array('error' => 'Missing barcode.');
+    }
+
+    $url = 'https://api.upcitemdb.com/prod/trial/lookup?upc=' . rawurlencode($barcode);
+
+    $response = wp_remote_get($url, array(
+        'timeout' => 20,
+        'headers' => array('Accept' => 'application/json'),
+    ));
+
+    if (is_wp_error($response)) {
+        return array('error' => 'UPCitemdb request failed: ' . $response->get_error_message());
+    }
+
+    $code = wp_remote_retrieve_response_code($response);
+    $body = wp_remote_retrieve_body($response);
+    $json = json_decode($body, true);
+
+    if ($code !== 200 || !is_array($json)) {
+        return array('error' => 'UPCitemdb failed. HTTP ' . $code);
+    }
+
+    if (empty($json['items'][0]) || !is_array($json['items'][0])) {
+        return array('error' => 'UPCitemdb: no product found.');
+    }
+
+    $p = $json['items'][0];
+
+    $title = !empty($p['title']) ? $p['title'] : 'Scanned Product #' . substr($barcode, -4);
+    $brand = !empty($p['brand']) ? $p['brand'] : '';
+    $description = !empty($p['description']) ? wp_strip_all_tags($p['description']) : '';
+    $category = !empty($p['category']) ? $p['category'] : '';
+
+    $retail = 0;
+    if (!empty($p['offers']) && is_array($p['offers'])) {
+        $offer_prices = array();
+        foreach ($p['offers'] as $offer) {
+            if (isset($offer['price']) && is_numeric($offer['price'])) {
+                $offer_prices[] = (float)$offer['price'];
+            }
         }
-
-        $brand = !empty($p['brand']) ? $p['brand'] : '';
-        $category = !empty($p['category']) ? $p['category'] : '';
-        $description = !empty($p['description']) ? wp_strip_all_tags($p['description']) : '';
-
-        $source = 'Mixed';
-        $text_blob = strtolower($brand . ' ' . $category . ' ' . $title);
-        if (strpos($text_blob, 'target') !== false) $source = 'Target';
-        elseif (strpos($text_blob, 'amazon') !== false) $source = 'Amazon';
-        elseif (strpos($text_blob, 'sam') !== false) $source = "Sam's";
-        elseif (strpos($text_blob, 'dollar general') !== false || strpos($text_blob, 'dg') !== false) $source = 'DG';
-
-        return array(
-            'barcode' => $barcode,
-            'title' => $title,
-            'retail' => $retail > 0 ? $retail : 0,
-            'live' => nsr_live_suggest_price($retail > 0 ? $retail : 0),
-            'qty' => 1,
-            'source' => $source,
-            'note' => $brand . ($category ? ' | ' . $category : ''),
-            'image' => $image,
-            'brand' => $brand,
-            'category' => $category,
-            'description' => $description,
-        );
+        if (!empty($offer_prices)) {
+            $retail = min($offer_prices);
+        }
     }
 
-    if (!empty($json['message'])) {
-        return array('error' => 'Lookup message: ' . $json['message']);
+    $image = '';
+    if (!empty($p['images']) && is_array($p['images']) && !empty($p['images'][0])) {
+        $image = esc_url_raw($p['images'][0]);
     }
 
-    return array('error' => 'No product found for that barcode.');
+    return array(
+        'provider' => 'UPCitemdb',
+        'barcode' => $barcode,
+        'title' => $title,
+        'retail' => $retail > 0 ? $retail : 0,
+        'live' => nsr_live_suggest_price($retail > 0 ? $retail : 0),
+        'qty' => 1,
+        'source' => 'Mixed',
+        'note' => trim($brand . ($category ? ' | ' . $category : '')),
+        'image' => $image,
+        'brand' => $brand,
+        'category' => $category,
+        'description' => $description,
+    );
+}
+
+function nsr_live_multi_lookup($barcode, $state) {
+    $barcode_key = trim((string)$state['barcode_lookup_api_key']);
+
+    if ($barcode_key !== '') {
+        $primary = nsr_live_real_lookup_barcodelookup($barcode, $barcode_key);
+        if (empty($primary['error']) && !empty($primary['title'])) {
+            return $primary;
+        }
+    }
+
+    $fallback = nsr_live_real_lookup_upcitemdb($barcode);
+    if (empty($fallback['error']) && !empty($fallback['title'])) {
+        return $fallback;
+    }
+
+    if (!empty($primary['error'])) {
+        return array('error' => $primary['error'] . ' | ' . ($fallback['error'] ?? 'Fallback lookup failed.'));
+    }
+
+    return $fallback;
 }
 
 add_action('admin_init', function () {
@@ -342,37 +424,34 @@ add_action('admin_init', function () {
         $state['follower_goal_target'] = max(1, intval($_POST['follower_goal_target'] ?? 1000));
         $state['next_item_no'] = max(1, intval($_POST['next_item_no'] ?? $state['next_item_no']));
         $state['barcode_lookup_api_key'] = sanitize_text_field($_POST['barcode_lookup_api_key'] ?? $state['barcode_lookup_api_key']);
+        $state['upcdatabase_api_key'] = sanitize_text_field($_POST['upcdatabase_api_key'] ?? $state['upcdatabase_api_key']);
         $state['last_action'] = 'Settings saved.';
     }
 
     if ($action === 'scanner_lookup') {
         $barcode = sanitize_text_field($_POST['scanner_barcode'] ?? '');
-        $api_key = trim((string)$state['barcode_lookup_api_key']);
+        $draft = nsr_live_multi_lookup($barcode, $state);
 
-        if ($api_key === '') {
-            $state['scanner_draft'] = array();
-            $state['last_action'] = 'Add your Barcode Lookup API key in NSR Live → Settings first.';
+        if (!empty($draft['error'])) {
+            $state['scanner_draft'] = array(
+                'provider' => 'Manual',
+                'barcode' => preg_replace('/\D+/', '', $barcode),
+                'title' => '',
+                'retail' => 0,
+                'live' => 5,
+                'qty' => 1,
+                'source' => 'Mixed',
+                'note' => 'Manual review needed',
+                'image' => '',
+                'brand' => '',
+                'category' => '',
+                'description' => '',
+            );
+            $state['last_action'] = $draft['error'];
         } else {
-            $draft = nsr_live_real_lookup($barcode, $api_key);
-            if (!empty($draft['error'])) {
-                $state['scanner_draft'] = array(
-                    'barcode' => preg_replace('/\D+/', '', $barcode),
-                    'title' => '',
-                    'retail' => 0,
-                    'live' => 5,
-                    'qty' => 1,
-                    'source' => 'Mixed',
-                    'note' => 'Manual review needed',
-                    'image' => '',
-                    'brand' => '',
-                    'category' => '',
-                    'description' => '',
-                );
-                $state['last_action'] = $draft['error'];
-            } else {
-                $state['scanner_draft'] = $draft;
-                $state['last_action'] = 'Real product lookup loaded for barcode ' . $draft['barcode'] . '. Review and add to queue.';
-            }
+            $state['scanner_draft'] = $draft;
+            $provider = !empty($draft['provider']) ? $draft['provider'] : 'lookup';
+            $state['last_action'] = $provider . ' result loaded for barcode ' . $draft['barcode'] . '. Review and add to queue.';
         }
     }
 
@@ -813,9 +892,8 @@ function nsr_live_queue_page() {
 
             <div class="nsr-card">
                 <h2>Quick Add by Barcode</h2>
-                <p>For the new faster workflow, use <strong>NSR Live → Scanner</strong>.</p>
-                <p>That page now supports a real Barcode Lookup API key from Settings.</p>
-                <p><strong>Live recommendation:</strong> use short item numbers like 101, 102, 103 for customers. Keep the barcode in the background.</p>
+                <p>Use <strong>NSR Live → Scanner</strong> for the faster barcode workflow.</p>
+                <p>The scanner now tries Barcode Lookup first, then UPCitemdb fallback.</p>
             </div>
         </div>
 
@@ -906,19 +984,17 @@ function nsr_live_scanner_page() {
                     <p class="nsr-small" style="margin:8px 0 0 0">Scan → review result → set qty → add to queue → cursor returns to barcode.</p>
                 </div>
 
-                <?php if (empty($state['barcode_lookup_api_key'])): ?>
-                    <div class="nsr-api-help">
-                        <strong>Next step:</strong>
-                        <p class="nsr-small" style="margin:6px 0 0 0">Add your Barcode Lookup API key in <strong>NSR Live → Settings</strong> before scanning for real product matches.</p>
-                    </div>
-                <?php endif; ?>
+                <div class="nsr-api-help">
+                    <strong>Lookup order</strong>
+                    <p class="nsr-small" style="margin:6px 0 0 0">1. Barcode Lookup if key is filled<br>2. UPCitemdb fallback<br>3. Manual review if needed</p>
+                </div>
             </div>
 
             <div class="nsr-card">
                 <h2>Scanner Draft</h2>
 
                 <?php if (!empty($draft)): ?>
-                    <div class="nsr-draft-badge">READY TO REVIEW</div>
+                    <div class="nsr-draft-badge">READY TO REVIEW<?php echo !empty($draft['provider']) ? ' • ' . esc_html($draft['provider']) : ''; ?></div>
 
                     <?php if (!empty($draft['image'])): ?>
                         <div class="nsr-image-preview">
@@ -1027,8 +1103,12 @@ function nsr_live_settings_page() {
                     <input type="number" name="next_item_no" value="<?php echo intval($state['next_item_no']); ?>">
                 </label>
 
-                <label>Barcode Lookup API Key
+                <label>Barcode Lookup API Key (optional)
                     <input type="text" name="barcode_lookup_api_key" value="<?php echo esc_attr($state['barcode_lookup_api_key']); ?>" autocomplete="off">
+                </label>
+
+                <label>UPCDatabase Token (optional for future use)
+                    <input type="text" name="upcdatabase_api_key" value="<?php echo esc_attr($state['upcdatabase_api_key']); ?>" autocomplete="off">
                 </label>
 
                 <div>
@@ -1037,8 +1117,8 @@ function nsr_live_settings_page() {
             </form>
 
             <div class="nsr-api-help">
-                <strong>Barcode Lookup setup</strong>
-                <p class="nsr-small" style="margin:6px 0 0 0">Paste your API key here, save settings, then go to <strong>NSR Live → Scanner</strong> and scan an item.</p>
+                <strong>Scanner provider order</strong>
+                <p class="nsr-small" style="margin:6px 0 0 0">If Barcode Lookup key is filled, the scanner tries that first. If it fails or is blank, it uses UPCitemdb fallback.</p>
             </div>
 
             <p>Shortcode: <code>[nsr_live_page]</code></p>
@@ -1155,3 +1235,4 @@ function nsr_live_page_shortcode() {
     return ob_get_clean();
 }
 add_shortcode('nsr_live_page', 'nsr_live_page_shortcode');
+
