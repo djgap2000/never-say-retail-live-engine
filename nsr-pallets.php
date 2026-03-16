@@ -14,19 +14,18 @@ function nsr_save_pallets($data){
     update_option(NSR_PALLETS_OPT,$data,false);
 }
 
-add_action('admin_menu',function(){
+add_action('admin_menu', function(){
 
-add_submenu_page(
-'nsr_live',
-'Pallets',
-'Pallets',
-'manage_options',
-'nsr-live-pallets',
-'nsr_pallets_page'
-);
+    add_submenu_page(
+        'nsr-live',
+        'Pallets',
+        'Pallets',
+        'manage_options',
+        'nsr-live-pallets',
+        'nsr_pallets_page'
+    );
 
-});
-
+}, 20);
 function nsr_pallets_page(){
 
 $pallets = nsr_get_pallets();
