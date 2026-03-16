@@ -17,7 +17,7 @@ function nsr_save_pallets($data){
 add_action('admin_menu',function(){
 
 add_submenu_page(
-'nsr-live',
+'nsr_live',
 'Pallets',
 'Pallets',
 'manage_options',
