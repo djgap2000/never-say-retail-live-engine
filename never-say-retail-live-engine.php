@@ -2,12 +2,13 @@
 /*
 Plugin Name: Never Say Retail Live Engine
 Description: Live sale system for Never Say Retail.
-Version: 4.7.3
+Version: 4.8
 Update URI: https://github.com/djgap2000/never-say-retail-live-engine
 */
 
 if (!defined('ABSPATH')) exit;
 require_once plugin_dir_path(__FILE__) . 'nsr-pallets.php';
+require_once plugin_dir_path(__FILE__) . 'includes/nsr-smart-pricing.php';
 
 define('NSR_LIVE_OPT', 'nsr_live_state_v46');
 
