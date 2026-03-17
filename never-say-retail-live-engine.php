@@ -189,11 +189,11 @@ function nsr_live_styles() {
 }
 
 add_action('admin_enqueue_scripts', function() {
-    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.6', true);
+    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.8.1', true);
 });
 
 add_action('wp_enqueue_scripts', function() {
-    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.6', true);
+    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.8.1', true);
 });
 
 add_action('admin_menu', function () {
@@ -463,7 +463,9 @@ add_action('admin_init', function () {
         $state['last_action'] = 'Scanner draft cleared.';
     }
 
-    if ($action === 'scanner_add_to_queue') {
+   if (function_exists('nsr_attach_item_to_active_pallet')) {
+    nsr_attach_item_to_active_pallet($draft);
+}
         $draft = array(
             'item_no' => sanitize_text_field($_POST['item_no'] ?? ''),
             'title'   => sanitize_text_field($_POST['title'] ?? ''),
