@@ -463,25 +463,6 @@ add_action('admin_init', function () {
         $state['last_action'] = 'Scanner draft cleared.';
     }
 
-   if (function_exists('nsr_attach_item_to_active_pallet')) {
-    nsr_attach_item_to_active_pallet($draft);
-}
-        $draft = array(
-            'item_no' => sanitize_text_field($_POST['item_no'] ?? ''),
-            'title'   => sanitize_text_field($_POST['title'] ?? ''),
-            'source'  => sanitize_text_field($_POST['source'] ?? 'Mixed'),
-            'retail'  => (float)($_POST['retail'] ?? 0),
-            'live'    => (float)($_POST['live'] ?? 0),
-            'qty'     => max(1, intval($_POST['qty'] ?? 1)),
-            'claimed' => 0,
-            'barcode' => sanitize_text_field($_POST['barcode'] ?? ''),
-            'note'    => sanitize_text_field($_POST['note'] ?? ''),
-            'image'   => esc_url_raw($_POST['image'] ?? ''),
-            'brand'   => sanitize_text_field($_POST['brand'] ?? ''),
-            'category'=> sanitize_text_field($_POST['category'] ?? ''),
-            'description' => sanitize_text_field($_POST['description'] ?? ''),
-        );
-
         if ($draft['item_no'] === '') {
             $draft['item_no'] = nsr_live_auto_item_number($state);
         }
