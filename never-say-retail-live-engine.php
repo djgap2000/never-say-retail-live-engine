@@ -955,6 +955,11 @@ function nsr_live_scanner_page() {
     $state = nsr_live_state();
     $draft = isset($state['scanner_draft']) && is_array($state['scanner_draft']) ? $state['scanner_draft'] : array();
 
+    $pallets = function_exists('nsr_get_pallets') ? nsr_get_pallets() : array();
+    $active_pallet_id = function_exists('nsr_get_active_pallet_id') ? nsr_get_active_pallet_id() : 0;
+    $active_pallet = function_exists('nsr_get_active_pallet') ? nsr_get_active_pallet() : null;
+    $pallet_totals = ($active_pallet && function_exists('nsr_calculate_pallet_totals')) ? nsr_calculate_pallet_totals($active_pallet) : null;
+
     nsr_live_styles();
     nsr_live_notice($state);
     ?>
@@ -965,6 +970,37 @@ function nsr_live_scanner_page() {
             <div class="nsr-card">
                 <h2>Scan Item</h2>
                 <p>Use your USB, wireless, or keyboard-style scanner here. The barcode field stays ready.</p>
+
+                <?php if (!empty($pallets) && function_exists('nsr_set_active_pallet_id')): ?>
+                    <form method="post" style="margin-bottom:16px;">
+                        <?php wp_nonce_field('nsr_pallet_action', 'nsr_pallet_nonce'); ?>
+                        <input type="hidden" name="nsr_action" value="set_active_pallet">
+                        <label for="active_pallet_id"><strong>Active Pallet</strong></label><br>
+                        <select name="active_pallet_id" id="active_pallet_id">
+                            <option value="0">— No Active Pallet —</option>
+                            <?php foreach ($pallets as $idx => $pallet): ?>
+                                <option value="<?php echo intval($idx); ?>" <?php selected($active_pallet_id, $idx); ?>>
+                                    <?php echo esc_html($pallet['name'] . ' ($' . number_format(floatval($pallet['cost']), 2) . ')'); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <button class="button" style="margin-left:8px;">Set Active</button>
+                    </form>
+                <?php endif; ?>
+
+                <?php if ($active_pallet && $pallet_totals): ?>
+                    <div class="nsr-api-help" style="margin-bottom:16px;">
+                        <strong>Active Pallet: <?php echo esc_html($active_pallet['name']); ?></strong>
+                        <p class="nsr-small" style="margin:8px 0 0 0;">
+                            Cost: <?php echo esc_html(nsr_live_format_money($pallet_totals['cost'])); ?><br>
+                            Items: <?php echo intval($pallet_totals['items']); ?><br>
+                            Retail Value: <?php echo esc_html(nsr_live_format_money($pallet_totals['retail'])); ?><br>
+                            Est Sale Value: <?php echo esc_html(nsr_live_format_money($pallet_totals['sales'])); ?><br>
+                            Profit: <?php echo esc_html(nsr_live_format_money($pallet_totals['profit'])); ?><br>
+                            Break-even Remaining: <?php echo esc_html(nsr_live_format_money($pallet_totals['break_even_remaining'])); ?>
+                        </p>
+                    </div>
+                <?php endif; ?>
 
                 <form method="post">
                     <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); nsr_live_hidden_redirect(); ?>
@@ -1007,6 +1043,27 @@ function nsr_live_scanner_page() {
                         </div>
                     <?php endif; ?>
 
+                    <?php
+                    $smart_price = '';
+                    if (function_exists('nsr_calculate_smart_price') && $active_pallet && $pallet_totals) {
+                        $smart_price = nsr_calculate_smart_price(
+                            floatval($draft['retail'] ?? 0),
+                            floatval($pallet_totals['cost']),
+                            floatval($pallet_totals['sales'])
+                        );
+                    }
+                    ?>
+
+                    <?php if ($smart_price !== ''): ?>
+                        <div class="nsr-api-help" style="margin-bottom:12px;">
+                            <strong>Smart Pricing Engine</strong>
+                            <p class="nsr-small" style="margin:6px 0 0 0">
+                                Base retail: <?php echo esc_html(nsr_live_format_money(floatval($draft['retail'] ?? 0))); ?><br>
+                                Smart suggested price: <?php echo esc_html(nsr_live_format_money($smart_price)); ?>
+                            </p>
+                        </div>
+                    <?php endif; ?>
+
                     <form method="post" class="nsr-form-grid">
                         <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); nsr_live_hidden_redirect(); ?>
                         <input type="hidden" name="nsr_live_action" value="scanner_add_to_queue">
@@ -1044,7 +1101,7 @@ function nsr_live_scanner_page() {
                         </label>
 
                         <label>Suggested NSR Price
-                            <input class="nsr-live-input" type="number" step="0.01" name="live" value="<?php echo esc_attr($draft['live']); ?>" required>
+                            <input class="nsr-live-input" type="number" step="0.01" name="live" value="<?php echo esc_attr($smart_price !== '' ? $smart_price : ($draft['live'] ?? '')); ?>" required>
                         </label>
 
                         <label>Qty
