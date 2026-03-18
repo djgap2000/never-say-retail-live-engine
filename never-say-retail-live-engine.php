@@ -2,7 +2,7 @@
 /*
 Plugin Name: Never Say Retail Live Engine
 Description: Live sale system for Never Say Retail.
-Version: 4.8.2
+Version: 4.8.5
 Update URI: https://github.com/djgap2000/never-say-retail-live-engine
 */
 
@@ -189,11 +189,11 @@ function nsr_live_styles() {
 }
 
 add_action('admin_enqueue_scripts', function() {
-    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.8.1', true);
+    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.8.5', true);
 });
 
 add_action('wp_enqueue_scripts', function() {
-    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.8.1', true);
+    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.8.5', true);
 });
 
 add_action('admin_menu', function () {
@@ -1045,25 +1045,33 @@ function nsr_live_scanner_page() {
                     <?php endif; ?>
 
                     <?php
-                    $smart_price = '';
-                    if (function_exists('nsr_calculate_smart_price') && $active_pallet && $pallet_totals) {
-                        $smart_price = nsr_calculate_smart_price(
-                            floatval($draft['retail'] ?? 0),
-                            floatval($pallet_totals['cost']),
-                            floatval($pallet_totals['sales'])
+                  $smart_price = '';
+$pricing_context = array();
+
+if (function_exists('nsr_calculate_hybrid_pricing_context') && $active_pallet && $pallet_totals) {
+    $pricing_context = nsr_calculate_hybrid_pricing_context(
+        floatval($draft['retail'] ?? 0),
+        floatval($pallet_totals['cost']),
+        floatval($pallet_totals['sales'])
+    );
+    $smart_price = $pricing_context['hybrid_price'];
+}
                         );
                     }
                     ?>
 
-                    <?php if ($smart_price !== ''): ?>
-                        <div class="nsr-api-help" style="margin-bottom:12px;">
-                            <strong>Smart Pricing Engine</strong>
-                            <p class="nsr-small" style="margin:6px 0 0 0">
-                                Base retail: <?php echo esc_html(nsr_live_format_money(floatval($draft['retail'] ?? 0))); ?><br>
-                                Smart suggested price: <?php echo esc_html(nsr_live_format_money($smart_price)); ?>
-                            </p>
-                        </div>
-                    <?php endif; ?>
+                   <?php if ($smart_price !== '' && !empty($pricing_context)): ?>
+    <div class="nsr-api-help" style="margin-bottom:12px;">
+        <strong>Hybrid Smart Pricing</strong>
+        <p class="nsr-small" style="margin:6px 0 0 0">
+            Retail: <?php echo esc_html(nsr_live_format_money(floatval($draft['retail'] ?? 0))); ?><br>
+            Base Suggested Price: <?php echo esc_html(nsr_live_format_money($pricing_context['base_price'])); ?><br>
+            Hybrid Suggested Price: <?php echo esc_html(nsr_live_format_money($pricing_context['hybrid_price'])); ?><br>
+            Break-even Remaining Now: <?php echo esc_html(nsr_live_format_money($pricing_context['remaining_now'])); ?><br>
+            Break-even Remaining After Sale: <?php echo esc_html(nsr_live_format_money($pricing_context['remaining_after_sale'])); ?>
+        </p>
+    </div>
+<?php endif; ?>
 
                     <form method="post" class="nsr-form-grid">
                         <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); nsr_live_hidden_redirect(); ?>
