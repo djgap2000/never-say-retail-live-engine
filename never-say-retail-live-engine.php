@@ -1044,8 +1044,8 @@ function nsr_live_scanner_page() {
                         </div>
                     <?php endif; ?>
 
-                    <?php
-                  $smart_price = '';
+<?php
+$smart_price = '';
 $pricing_context = array();
 
 if (function_exists('nsr_calculate_hybrid_pricing_context') && $active_pallet && $pallet_totals) {
@@ -1056,11 +1056,9 @@ if (function_exists('nsr_calculate_hybrid_pricing_context') && $active_pallet &&
     );
     $smart_price = $pricing_context['hybrid_price'];
 }
-                        );
-                    }
-                    ?>
+?>
 
-                   <?php if ($smart_price !== '' && !empty($pricing_context)): ?>
+<?php if ($smart_price !== '' && !empty($pricing_context)) { ?>
     <div class="nsr-api-help" style="margin-bottom:12px;">
         <strong>Hybrid Smart Pricing</strong>
         <p class="nsr-small" style="margin:6px 0 0 0">
@@ -1071,7 +1069,7 @@ if (function_exists('nsr_calculate_hybrid_pricing_context') && $active_pallet &&
             Break-even Remaining After Sale: <?php echo esc_html(nsr_live_format_money($pricing_context['remaining_after_sale'])); ?>
         </p>
     </div>
-<?php endif; ?>
+<?php } ?>
 
                     <form method="post" class="nsr-form-grid">
                         <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); nsr_live_hidden_redirect(); ?>
