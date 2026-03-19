@@ -2,7 +2,7 @@
 /*
 Plugin Name: Never Say Retail Live Engine
 Description: Live sale system for Never Say Retail.
-Version: 4.9
+Version: 4.9.1
 Update URI: https://github.com/djgap2000/never-say-retail-live-engine
 */
 
@@ -124,11 +124,14 @@ function nsr_live_styles() {
     $done = true;
     ?>
     <style>
-        .nsr-price-status{border-radius:12px;padding:12px;margin-bottom:12px;border:1px solid #dcdcde}
+       .nsr-price-status{border-radius:16px;padding:14px 14px 12px;margin-bottom:12px;border:1px solid #dcdcde;box-shadow:0 2px 10px rgba(0,0,0,.04)}
 .nsr-price-status.red{background:#fef2f2;border-color:#fecaca}
 .nsr-price-status.yellow{background:#fffbeb;border-color:#fde68a}
 .nsr-price-status.green{background:#ecfdf5;border-color:#a7f3d0}
-.nsr-price-status strong{display:block;margin-bottom:6px}
+.nsr-price-status strong{display:block;margin-bottom:8px;font-size:15px}
+.nsr-smart-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.nsr-price-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px}
+.nsr-price-note{margin-top:8px;font-style:italic;opacity:.85}
 .nsr-smart-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
         .nsr-live-wrap{max-width:1200px}
         .nsr-admin-grid{display:grid;grid-template-columns:1fr 1.2fr .9fr;gap:18px;margin-top:16px}
@@ -195,11 +198,11 @@ function nsr_live_styles() {
 }
 
 add_action('admin_enqueue_scripts', function() {
-    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.9', true);
+    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.9.1', true);
 });
 
 add_action('wp_enqueue_scripts', function() {
-    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.9', true);
+    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.9.1', true);
 });
 
 add_action('admin_menu', function () {
@@ -1066,17 +1069,39 @@ if (function_exists('nsr_calculate_hybrid_pricing_context') && $active_pallet &&
 
 <?php if ($smart_price !== '' && !empty($pricing_context)) { ?>
     <div class="nsr-price-status <?php echo esc_attr($pricing_context['status']); ?>">
-        <strong>Status: <?php echo esc_html($pricing_context['status_label']); ?></strong>
-        <div class="nsr-small">
-            Retail: <?php echo esc_html(nsr_live_format_money(floatval($draft['retail'] ?? 0))); ?><br>
-            Base Suggested Price: <?php echo esc_html(nsr_live_format_money($pricing_context['base_price'])); ?><br>
-            Hybrid Suggested Price: <?php echo esc_html(nsr_live_format_money($pricing_context['hybrid_price'])); ?><br>
-            Max Profit Price: <?php echo esc_html(nsr_live_format_money($pricing_context['max_profit_price'])); ?><br>
-            Profit If Sold Now: <?php echo esc_html(nsr_live_format_money($pricing_context['profit_if_sold_now'])); ?><br>
-            Margin: <?php echo esc_html($pricing_context['margin_percent']); ?>%<br>
-            Break-even Remaining Now: <?php echo esc_html(nsr_live_format_money($pricing_context['remaining_now'])); ?><br>
-            Break-even Remaining After Sale: <?php echo esc_html(nsr_live_format_money($pricing_context['remaining_after_sale'])); ?>
+        <strong><?php echo esc_html($pricing_context['status_icon'] . ' Status: ' . $pricing_context['status_label']); ?></strong>
+
+        <div class="nsr-price-grid nsr-small">
+            <div>Retail:</div>
+            <div><?php echo esc_html(nsr_live_format_money(floatval($draft['retail'] ?? 0))); ?></div>
+
+            <div>Base Suggested Price:</div>
+            <div><?php echo esc_html(nsr_live_format_money($pricing_context['base_price'])); ?></div>
+
+            <div>Hybrid Suggested Price:</div>
+            <div><?php echo esc_html(nsr_live_format_money($pricing_context['hybrid_price'])); ?></div>
+
+            <div>Max Profit Price:</div>
+            <div><?php echo esc_html(nsr_live_format_money($pricing_context['max_profit_price'])); ?></div>
+
+            <div>Estimated Profit If Sold:</div>
+            <div><?php echo esc_html(nsr_live_format_money($pricing_context['estimated_profit'])); ?></div>
+
+            <?php if ($pricing_context['margin_percent'] !== null) { ?>
+                <div>Margin:</div>
+                <div><?php echo esc_html($pricing_context['margin_percent']); ?>%</div>
+            <?php } ?>
+
+            <div>Break-even Remaining Now:</div>
+            <div><?php echo esc_html(nsr_live_format_money($pricing_context['remaining_now'])); ?></div>
+
+            <div>Break-even Remaining After Sale:</div>
+            <div><?php echo esc_html(nsr_live_format_money($pricing_context['remaining_after_sale'])); ?></div>
         </div>
+
+        <?php if (!empty($pricing_context['needs_retail'])) { ?>
+            <div class="nsr-price-note nsr-small">Enter retail price for more accurate margin and profit guidance.</div>
+        <?php } ?>
 
         <div class="nsr-smart-actions">
             <button type="button" class="button" onclick="document.querySelector('.nsr-live-input').value='<?php echo esc_attr($pricing_context['hybrid_price']); ?>'">
