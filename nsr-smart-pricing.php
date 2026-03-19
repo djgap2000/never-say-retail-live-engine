@@ -49,24 +49,30 @@ function nsr_calculate_hybrid_pricing_context($retail_price, $pallet_cost, $pall
     $remaining_now = max(0, $pallet_cost - $pallet_revenue);
     $remaining_after_sale = max(0, $pallet_cost - ($pallet_revenue + $hybrid));
 
-    $profit_if_sold_now = round($hybrid, 2);
-
     $estimated_item_cost = 0;
     if ($retail_price > 0) {
         $estimated_item_cost = round($retail_price * 0.20, 2);
     }
-    $margin_percent = $hybrid > 0
-        ? round((($hybrid - $estimated_item_cost) / $hybrid) * 100)
-        : 0;
+
+    $estimated_profit = round($hybrid - $estimated_item_cost, 2);
+
+    $margin_percent = null;
+    if ($retail_price > 0 && $hybrid > 0) {
+        $margin_percent = round((($hybrid - $estimated_item_cost) / $hybrid) * 100);
+    }
 
     $status = 'green';
     $status_label = 'Profitable';
+    $status_icon = '🟢';
+
     if ($pallet_cost > 0 && $remaining_now > ($pallet_cost * 0.50)) {
         $status = 'red';
         $status_label = 'Building Margin';
+        $status_icon = '🔴';
     } elseif ($remaining_now > 0) {
         $status = 'yellow';
         $status_label = 'Near Break-even';
+        $status_icon = '🟡';
     }
 
     $max_profit_price = $retail_price > 0
@@ -78,10 +84,12 @@ function nsr_calculate_hybrid_pricing_context($retail_price, $pallet_cost, $pall
         'hybrid_price' => round($hybrid, 2),
         'remaining_now' => round($remaining_now, 2),
         'remaining_after_sale' => round($remaining_after_sale, 2),
-        'profit_if_sold_now' => round($profit_if_sold_now, 2),
-        'margin_percent' => intval($margin_percent),
+        'estimated_profit' => round($estimated_profit, 2),
+        'margin_percent' => $margin_percent,
         'status' => $status,
         'status_label' => $status_label,
+        'status_icon' => $status_icon,
         'max_profit_price' => round($max_profit_price, 2),
+        'needs_retail' => $retail_price <= 0,
     );
 }
