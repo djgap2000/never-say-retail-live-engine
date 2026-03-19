@@ -2,7 +2,7 @@
 /*
 Plugin Name: Never Say Retail Live Engine
 Description: Live sale system for Never Say Retail.
-Version: 4.9.1
+Version: 4.9.2
 Update URI: https://github.com/djgap2000/never-say-retail-live-engine
 */
 
@@ -33,6 +33,10 @@ function nsr_live_default_state() {
         'scanner_draft' => array(),
         'barcode_lookup_api_key' => '',
         'upcdatabase_api_key' => '',
+        'show_fx_enabled' => 1,
+'show_music_enabled' => 0,
+'show_mode_banner' => '',
+'show_mode_effect' => '',
     );
 }
 
@@ -186,6 +190,18 @@ function nsr_live_styles() {
         .nsr-stat{background:#f9fafb;border-radius:12px;padding:12px}
         .nsr-stat strong{display:block;margin-bottom:6px}
         .nsr-lists{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px}
+        .nsr-showmode-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}
+.nsr-showmode-card{background:#fff;border:1px solid #dcdcde;border-radius:18px;padding:16px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
+.nsr-showmode-banner{border-radius:16px;padding:14px 16px;margin:12px 0;font-weight:700;font-size:18px;letter-spacing:.2px}
+.nsr-showmode-banner.flash{background:#fff7ed;border:1px solid #fdba74}
+.nsr-showmode-banner.sold{background:#ecfdf5;border:1px solid #86efac}
+.nsr-showmode-banner.mystery{background:#eff6ff;border:1px solid #93c5fd}
+.nsr-showmode-banner.hype{background:#faf5ff;border:1px solid #d8b4fe}
+.nsr-show-buttons{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.nsr-host-cues{background:#f8fafc;border:1px solid #cbd5e1;border-radius:16px;padding:14px}
+.nsr-host-cues h3{margin-top:0}
+.nsr-host-cues p{margin:.4em 0}
+.nsr-pill{display:inline-block;padding:6px 10px;border-radius:999px;background:#111827;color:#fff;font-size:12px;font-weight:700}
 
         @keyframes nsrPulse{0%{transform:scale(1)}50%{transform:scale(1.02)}100%{transform:scale(1)}}
         @media (max-width:900px){
@@ -198,11 +214,11 @@ function nsr_live_styles() {
 }
 
 add_action('admin_enqueue_scripts', function() {
-    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.9.1', true);
+    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.9.2', true);
 });
 
 add_action('wp_enqueue_scripts', function() {
-    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.9.1', true);
+    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.9.2', true);
 });
 
 add_action('admin_menu', function () {
@@ -643,6 +659,40 @@ if ($action === 'scanner_add_to_queue') {
             $state['timer_end'] = 0;
             $state['last_action'] = 'Brought item ' . $r['item_no'] . ' live again. Timer is off until you start it.';
         }
+        if ($action === 'show_mode_trigger') {
+    $effect = sanitize_text_field($_POST['effect'] ?? '');
+    $banner = '';
+
+    if ($effect === 'flash') {
+        $banner = '⚡ FLASH DEAL LIVE';
+    } elseif ($effect === 'sold') {
+        $banner = '🎉 SOLD ALERT';
+    } elseif ($effect === 'mystery') {
+        $banner = '🎁 MYSTERY ITEM';
+    } elseif ($effect === 'hype') {
+        $banner = '🔥 CLAIM IT NOW';
+    }
+
+    $state['show_mode_effect'] = $effect;
+    $state['show_mode_banner'] = $banner;
+    $state['last_action'] = 'Show mode trigger: ' . $effect;
+}
+
+if ($action === 'show_mode_clear') {
+    $state['show_mode_effect'] = '';
+    $state['show_mode_banner'] = '';
+    $state['last_action'] = 'Show mode banner cleared.';
+}
+
+if ($action === 'toggle_show_fx') {
+    $state['show_fx_enabled'] = empty($state['show_fx_enabled']) ? 1 : 0;
+    $state['last_action'] = $state['show_fx_enabled'] ? 'Show FX enabled.' : 'Show FX disabled.';
+}
+
+if ($action === 'toggle_show_music') {
+    $state['show_music_enabled'] = empty($state['show_music_enabled']) ? 1 : 0;
+    $state['last_action'] = $state['show_music_enabled'] ? 'Show music mode enabled.' : 'Show music mode disabled.';
+}
     }
 
     nsr_live_save($state);
