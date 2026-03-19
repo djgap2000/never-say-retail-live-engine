@@ -171,4 +171,36 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 });
+document.addEventListener('DOMContentLoaded', function () {
+  const liveInput = document.querySelector('.nsr-live-input');
+  const scanInput = document.getElementById('scanner_barcode');
+
+  if (scanInput) {
+    scanInput.focus();
+  }
+
+  const banner = document.querySelector('.nsr-showmode-banner');
+  if (banner) {
+    banner.animate(
+      [
+        { transform: 'scale(1)', opacity: 1 },
+        { transform: 'scale(1.02)', opacity: 1 },
+        { transform: 'scale(1)', opacity: 1 }
+      ],
+      {
+        duration: 900,
+        iterations: 2
+      }
+    );
+  }
+
+  const buttons = document.querySelectorAll('.nsr-smart-actions .button');
+  buttons.forEach((btn) => {
+    btn.addEventListener('click', function () {
+      if (liveInput) {
+        setTimeout(() => liveInput.focus(), 50);
+      }
+    });
+  });
+});
 
