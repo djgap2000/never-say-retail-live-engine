@@ -180,6 +180,11 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   const banner = document.querySelector('.nsr-showmode-banner');
+  console.log('NSR banner found:', !!banner);
+if (banner) {
+  console.log('NSR banner effect:', banner.dataset.effect);
+  console.log('NSR FX enabled:', banner.dataset.fx);
+}
   if (banner) {
     banner.animate(
       [
@@ -204,29 +209,64 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 document.addEventListener('DOMContentLoaded', function () {
+ let nsrAudioCtx = null;
+
+function nsrUnlockAudio() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+
+    if (!nsrAudioCtx) {
+      nsrAudioCtx = new AudioCtx();
+    }
+
+    if (nsrAudioCtx.state === 'suspended') {
+      nsrAudioCtx.resume();
+    }
+
+    const osc = nsrAudioCtx.createOscillator();
+    const gain = nsrAudioCtx.createGain();
+
+    gain.gain.value = 0.0001;
+    osc.connect(gain);
+    gain.connect(nsrAudioCtx.destination);
+    osc.start();
+    osc.stop(nsrAudioCtx.currentTime + 0.01);
+  } catch (e) {}
+}
+
+document.addEventListener('click', nsrUnlockAudio, { once: true });
+document.addEventListener('touchstart', nsrUnlockAudio, { once: true }); 
   const banner = document.querySelector('.nsr-showmode-banner');
 
   function playTone(freq, duration, type, volume) {
-    try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtx) return;
-      const ctx = new AudioCtx();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
 
-      osc.type = type || 'sine';
-      osc.frequency.value = freq;
-      gain.gain.value = volume || 0.03;
+    if (!nsrAudioCtx) {
+      nsrAudioCtx = new AudioCtx();
+    }
 
-      osc.connect(gain);
-      gain.connect(ctx.destination);
+    if (nsrAudioCtx.state === 'suspended') {
+      nsrAudioCtx.resume();
+    }
 
-      osc.start();
+    const osc = nsrAudioCtx.createOscillator();
+    const gain = nsrAudioCtx.createGain();
 
-      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
-      osc.stop(ctx.currentTime + duration);
-    } catch (e) {}
-  }
+    osc.type = type || 'sine';
+    osc.frequency.value = freq;
+    gain.gain.value = volume || 0.03;
+
+    osc.connect(gain);
+    gain.connect(nsrAudioCtx.destination);
+
+    osc.start();
+    gain.gain.exponentialRampToValueAtTime(0.0001, nsrAudioCtx.currentTime + duration);
+    osc.stop(nsrAudioCtx.currentTime + duration);
+  } catch (e) {}
+}
 
   function playEffect(effect) {
     if (!banner) return;
