@@ -203,4 +203,72 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 });
+document.addEventListener('DOMContentLoaded', function () {
+  const banner = document.querySelector('.nsr-showmode-banner');
 
+  function playTone(freq, duration, type, volume) {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = type || 'sine';
+      osc.frequency.value = freq;
+      gain.gain.value = volume || 0.03;
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start();
+
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+      osc.stop(ctx.currentTime + duration);
+    } catch (e) {}
+  }
+
+  function playEffect(effect) {
+    if (!banner) return;
+    const fxEnabled = banner.dataset.fx === '1';
+    if (!fxEnabled) return;
+
+    if (effect === 'flash') {
+      playTone(880, 0.12, 'square', 0.04);
+      setTimeout(() => playTone(1174, 0.14, 'square', 0.04), 120);
+    } else if (effect === 'sold') {
+      playTone(523, 0.10, 'triangle', 0.04);
+      setTimeout(() => playTone(659, 0.12, 'triangle', 0.04), 100);
+      setTimeout(() => playTone(784, 0.16, 'triangle', 0.04), 220);
+    } else if (effect === 'mystery') {
+      playTone(330, 0.18, 'sawtooth', 0.03);
+      setTimeout(() => playTone(392, 0.20, 'sawtooth', 0.03), 160);
+    } else if (effect === 'hype') {
+      playTone(698, 0.08, 'square', 0.04);
+      setTimeout(() => playTone(698, 0.08, 'square', 0.04), 100);
+      setTimeout(() => playTone(880, 0.14, 'square', 0.04), 220);
+    }
+  }
+
+  if (banner) {
+    const effect = banner.dataset.effect || '';
+    playEffect(effect);
+
+    banner.animate(
+      [
+        { transform: 'translateY(-8px) scale(0.99)', opacity: 0.3 },
+        { transform: 'translateY(0) scale(1.02)', opacity: 1 },
+        { transform: 'translateY(0) scale(1)', opacity: 1 }
+      ],
+      {
+        duration: 700,
+        iterations: 1,
+        easing: 'ease-out'
+      }
+    );
+
+    setTimeout(() => {
+      banner.classList.remove('nsr-animate-pulse');
+    }, 3200);
+  }
+});
