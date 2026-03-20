@@ -2,7 +2,7 @@
 /*
 Plugin Name: Never Say Retail Live Engine
 Description: Live sale system for Never Say Retail.
-Version: 4.9.2
+Version: 4.9.3
 Update URI: https://github.com/djgap2000/never-say-retail-live-engine
 */
 
@@ -190,18 +190,23 @@ function nsr_live_styles() {
         .nsr-stat{background:#f9fafb;border-radius:12px;padding:12px}
         .nsr-stat strong{display:block;margin-bottom:6px}
         .nsr-lists{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px}
-        .nsr-showmode-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}
-.nsr-showmode-card{background:#fff;border:1px solid #dcdcde;border-radius:18px;padding:16px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
-.nsr-showmode-banner{border-radius:16px;padding:14px 16px;margin:12px 0;font-weight:700;font-size:18px;letter-spacing:.2px}
+       .nsr-showmode-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}
+.nsr-showmode-card,.nsr-host-cues{background:#fff;border:1px solid #dcdcde;border-radius:18px;padding:16px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
+.nsr-showmode-banner{border-radius:16px;padding:14px 16px;margin:12px 0 16px;font-weight:800;font-size:20px;letter-spacing:.2px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
 .nsr-showmode-banner.flash{background:#fff7ed;border:1px solid #fdba74}
 .nsr-showmode-banner.sold{background:#ecfdf5;border:1px solid #86efac}
 .nsr-showmode-banner.mystery{background:#eff6ff;border:1px solid #93c5fd}
 .nsr-showmode-banner.hype{background:#faf5ff;border:1px solid #d8b4fe}
+.nsr-showmode-banner.nsr-animate-pulse{animation:nsrPulse 1s ease-in-out 3}
+.nsr-showmode-banner.nsr-animate-slide{animation:nsrSlideIn .45s ease-out 1}
 .nsr-show-buttons{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.nsr-host-cues{background:#f8fafc;border:1px solid #cbd5e1;border-radius:16px;padding:14px}
 .nsr-host-cues h3{margin-top:0}
 .nsr-host-cues p{margin:.4em 0}
 .nsr-pill{display:inline-block;padding:6px 10px;border-radius:999px;background:#111827;color:#fff;font-size:12px;font-weight:700}
+.nsr-fx-on{background:#ecfdf5;border-color:#86efac}
+.nsr-fx-off{background:#f8fafc;border-color:#cbd5e1}
+@keyframes nsrPulse{0%{transform:scale(1)}50%{transform:scale(1.03)}100%{transform:scale(1)}}
+@keyframes nsrSlideIn{0%{transform:translateY(-10px);opacity:0}100%{transform:translateY(0);opacity:1}}
 
         @keyframes nsrPulse{0%{transform:scale(1)}50%{transform:scale(1.02)}100%{transform:scale(1)}}
         @media (max-width:900px){
@@ -214,11 +219,11 @@ function nsr_live_styles() {
 }
 
 add_action('admin_enqueue_scripts', function() {
-    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.9.2', true);
+    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.9.3', true);
 });
 
 add_action('wp_enqueue_scripts', function() {
-    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.9.2', true);
+    wp_enqueue_script('nsr-live-js', plugins_url('nsr-scripts.js', __FILE__), array(), '4.9.3', true);
 });
 
 add_action('admin_menu', function () {
@@ -753,7 +758,7 @@ function nsr_live_studio_page() {
     nsr_live_notice($state);
     ?>
     <?php if (!empty($state['show_mode_banner'])) { ?>
-    <div class="nsr-showmode-banner <?php echo !empty($state['show_mode_effect']) ? esc_attr($state['show_mode_effect']) : ''; ?>">
+    <div class="nsr-showmode-banner nsr-animate-slide nsr-animate-pulse <?php echo !empty($state['show_mode_effect']) ? esc_attr($state['show_mode_effect']) : ''; ?>" data-effect="<?php echo !empty($state['show_mode_effect']) ? esc_attr($state['show_mode_effect']) : ''; ?>" data-fx="<?php echo !empty($state['show_fx_enabled']) ? '1' : '0'; ?>">
         <?php echo esc_html($state['show_mode_banner']); ?>
     </div>
 <?php } ?>
@@ -796,13 +801,17 @@ function nsr_live_studio_page() {
             <form method="post">
                 <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); nsr_live_hidden_redirect(); ?>
                 <input type="hidden" name="nsr_live_action" value="toggle_show_fx">
-                <button class="button"><?php echo !empty($state['show_fx_enabled']) ? 'FX ON' : 'FX OFF'; ?></button>
+                <button class="button <?php echo !empty($state['show_fx_enabled']) ? 'button-primary nsr-fx-on' : 'nsr-fx-off'; ?>">
+    <?php echo !empty($state['show_fx_enabled']) ? 'FX ON' : 'FX OFF'; ?>
+</button>
             </form>
 
             <form method="post">
                 <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); nsr_live_hidden_redirect(); ?>
                 <input type="hidden" name="nsr_live_action" value="toggle_show_music">
-                <button class="button"><?php echo !empty($state['show_music_enabled']) ? 'Music Mode ON' : 'Music Mode OFF'; ?></button>
+                <button class="button <?php echo !empty($state['show_music_enabled']) ? 'button-primary nsr-fx-on' : 'nsr-fx-off'; ?>">
+    <?php echo !empty($state['show_music_enabled']) ? 'Music Mode ON' : 'Music Mode OFF'; ?>
+</button>
             </form>
 
             <form method="post">
