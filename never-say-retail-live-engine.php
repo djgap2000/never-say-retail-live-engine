@@ -754,13 +754,12 @@ function nsr_live_studio_page() {
     $upnext = nsr_live_upnext($state);
     $timer_left = (!empty($state['timer_end']) ? max(0, intval($state['timer_end']) - time()) : 0);
 
-    nsr_live_styles();
-    nsr_live_notice($state);
-    ?>
-   <div class="nsr-showmode-banner flash" data-effect="flash" data-fx="1">
+   nsr_live_styles();
+nsr_live_notice($state);
+?>
+<div class="nsr-showmode-banner flash" data-effect="flash" data-fx="1">
     TEST BANNER
 </div>
-<?php } ?>
 
 <div class="nsr-showmode-wrap">
     <div class="nsr-showmode-card">
