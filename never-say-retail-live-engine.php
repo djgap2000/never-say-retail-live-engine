@@ -11,6 +11,19 @@ if (!defined('ABSPATH')) exit;
 require_once plugin_dir_path(__FILE__) . 'nsr-pallets.php';
 require_once plugin_dir_path(__FILE__) . 'nsr-smart-pricing.php';
 
+// 🔴 ADD THIS RIGHT HERE
+if (
+    is_admin()
+    && isset($_REQUEST['action'])
+    && $_REQUEST['action'] === 'nsr_live_action'
+) {
+    wp_die(
+        'TOP TEST HIT | action=[' . esc_html($_REQUEST['action'] ?? '') .
+        '] | nsr_live_action=[' . esc_html($_REQUEST['nsr_live_action'] ?? '') .
+        '] | effect=[' . esc_html($_REQUEST['effect'] ?? '') . ']'
+    );
+}
+
 add_action('admin_post_nsr_live_action', function () {
 
     if (!current_user_can('manage_options')) {
