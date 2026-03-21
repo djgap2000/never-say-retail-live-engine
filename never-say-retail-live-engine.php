@@ -757,10 +757,9 @@ function nsr_live_studio_page() {
     nsr_live_styles();
     nsr_live_notice($state);
     ?>
-    <?php if (!empty($state['show_mode_banner'])) { ?>
-    <div class="nsr-showmode-banner nsr-animate-slide nsr-animate-pulse <?php echo !empty($state['show_mode_effect']) ? esc_attr($state['show_mode_effect']) : ''; ?>" data-effect="<?php echo !empty($state['show_mode_effect']) ? esc_attr($state['show_mode_effect']) : ''; ?>" data-fx="<?php echo !empty($state['show_fx_enabled']) ? '1' : '0'; ?>">
-        <?php echo esc_html($state['show_mode_banner']); ?>
-    </div>
+   <div class="nsr-showmode-banner flash" data-effect="flash" data-fx="1">
+    TEST BANNER
+</div>
 <?php } ?>
 
 <div class="nsr-showmode-wrap">
