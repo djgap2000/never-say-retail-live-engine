@@ -666,24 +666,12 @@ if ($action === 'scanner_add_to_queue') {
         }
        if ($action === 'show_mode_trigger') {
     $effect = sanitize_text_field($_POST['effect'] ?? '');
-    $banner = '';
 
-    $state['last_action'] = 'DEBUG trigger hit: [' . $effect . ']';
-
-    if ($effect === 'flash') {
-        $banner = 'FLASH DEAL LIVE';
-    } elseif ($effect === 'sold') {
-        $banner = 'SOLD ALERT';
-    } elseif ($effect === 'mystery') {
-        $banner = 'MYSTERY ITEM';
-    } elseif ($effect === 'hype') {
-        $banner = 'CLAIM IT NOW';
-    } else {
-        $banner = 'DEBUG UNKNOWN EFFECT';
-    }
-
-    $state['show_mode_effect'] = $effect;
-    $state['show_mode_banner'] = $banner;
+    $state['last_action'] = 'DEBUG trigger hit: [' . $effect . '] ' . time();
+    $state['show_mode_effect'] = 'flash';
+    $state['show_mode_banner'] = 'FLASH DEAL LIVE';
+    $state['tagline'] = 'TRIGGER WORKED ' . $effect;
+}
 }
 
 if ($action === 'show_mode_clear') {
