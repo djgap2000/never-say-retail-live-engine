@@ -664,19 +664,27 @@ if ($action === 'scanner_add_to_queue') {
             $state['timer_end'] = 0;
             $state['last_action'] = 'Brought item ' . $r['item_no'] . ' live again. Timer is off until you start it.';
         }
-        if ($action === 'show_mode_trigger') {
+       if ($action === 'show_mode_trigger') {
     $effect = sanitize_text_field($_POST['effect'] ?? '');
     $banner = '';
 
+    $state['last_action'] = 'DEBUG trigger hit: [' . $effect . ']';
+
     if ($effect === 'flash') {
-        $banner = '⚡ FLASH DEAL LIVE';
+        $banner = 'FLASH DEAL LIVE';
     } elseif ($effect === 'sold') {
-        $banner = '🎉 SOLD ALERT';
+        $banner = 'SOLD ALERT';
     } elseif ($effect === 'mystery') {
-        $banner = '🎁 MYSTERY ITEM';
+        $banner = 'MYSTERY ITEM';
     } elseif ($effect === 'hype') {
-        $banner = '🔥 CLAIM IT NOW';
+        $banner = 'CLAIM IT NOW';
+    } else {
+        $banner = 'DEBUG UNKNOWN EFFECT';
     }
+
+    $state['show_mode_effect'] = $effect;
+    $state['show_mode_banner'] = $banner;
+}
 
     $state['show_mode_effect'] = $effect;
     $state['show_mode_banner'] = $banner;
