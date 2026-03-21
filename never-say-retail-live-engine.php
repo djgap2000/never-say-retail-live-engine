@@ -686,11 +686,6 @@ if ($action === 'scanner_add_to_queue') {
     $state['show_mode_banner'] = $banner;
 }
 
-    $state['show_mode_effect'] = $effect;
-    $state['show_mode_banner'] = $banner;
-    $state['last_action'] = 'Show mode trigger: ' . $effect;
-}
-
 if ($action === 'show_mode_clear') {
     $state['show_mode_effect'] = '';
     $state['show_mode_banner'] = '';
