@@ -825,7 +825,7 @@ nsr_live_notice($state);
     </div>
 </div>
     <div class="wrap nsr-live-wrap">
-        <h1>Never Say Retail Live Studio</h1>
+        <h1>Never Say Retail Live Studio TEST BUILD 4.9.3</h1>
 
         <div class="nsr-admin-grid">
             <div class="nsr-card">
