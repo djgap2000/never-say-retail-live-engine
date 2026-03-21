@@ -232,14 +232,14 @@ function nsrUnlockAudio() {
     gain.connect(nsrAudioCtx.destination);
     osc.start();
     osc.stop(nsrAudioCtx.currentTime + 0.01);
+
   } catch (e) {}
 }
-
 document.addEventListener('click', nsrUnlockAudio, { once: true });
 document.addEventListener('touchstart', nsrUnlockAudio, { once: true }); 
   const banner = document.querySelector('.nsr-showmode-banner');
 
-  function playTone(freq, duration, type, volume) {
+function playTone(freq, duration, type, volume) {
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return;
@@ -252,19 +252,20 @@ document.addEventListener('touchstart', nsrUnlockAudio, { once: true });
       nsrAudioCtx.resume();
     }
 
-    const osc = nsrAudioCtx.createOscillator();
-    const gain = nsrAudioCtx.createGain();
+    const ctx = nsrAudioCtx;
+const osc = ctx.createOscillator();
+const gain = ctx.createGain();
 
-    osc.type = type || 'sine';
-    osc.frequency.value = freq;
-    gain.gain.value = volume || 0.03;
+osc.type = type || 'sine';
+osc.frequency.value = freq;
+gain.gain.value = volume || 0.03;
 
-    osc.connect(gain);
-    gain.connect(nsrAudioCtx.destination);
+osc.connect(gain);
+gain.connect(ctx.destination);
 
-    osc.start();
-    gain.gain.exponentialRampToValueAtTime(0.0001, nsrAudioCtx.currentTime + duration);
-    osc.stop(nsrAudioCtx.currentTime + duration);
+osc.start();
+gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+osc.stop(ctx.currentTime + duration);
   } catch (e) {}
 }
 
