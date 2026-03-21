@@ -665,12 +665,8 @@ if ($action === 'scanner_add_to_queue') {
             $state['last_action'] = 'Brought item ' . $r['item_no'] . ' live again. Timer is off until you start it.';
         }
        if ($action === 'show_mode_trigger') {
-    $effect = sanitize_text_field($_POST['effect'] ?? '');
-
-    $state['last_action'] = 'DEBUG trigger hit: [' . $effect . '] ' . time();
-    $state['show_mode_effect'] = 'flash';
-    $state['show_mode_banner'] = 'FLASH DEAL LIVE';
-    $state['tagline'] = 'TRIGGER WORKED ' . $effect;
+       $effect = sanitize_text_field($_POST['effect'] ?? '');
+    wp_die('SHOW MODE TRIGGER HIT: [' . esc_html($effect) . ']');
 }
 }
 
