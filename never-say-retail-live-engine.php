@@ -11,31 +11,28 @@ if (!defined('ABSPATH')) exit;
 require_once plugin_dir_path(__FILE__) . 'nsr-pallets.php';
 require_once plugin_dir_path(__FILE__) . 'nsr-smart-pricing.php';
 
-// 🔴 ADD THIS RIGHT HERE
-if (
-    is_admin()
-    && isset($_REQUEST['action'])
-    && $_REQUEST['action'] === 'nsr_live_action'
-) {
-    wp_die(
-        'TOP TEST HIT | action=[' . esc_html($_REQUEST['action'] ?? '') .
-        '] | nsr_live_action=[' . esc_html($_REQUEST['nsr_live_action'] ?? '') .
-        '] | effect=[' . esc_html($_REQUEST['effect'] ?? '') . ']'
-    );
-}
-
-add_action('admin_post_nsr_live_action', function () {
+add_action('admin_post_nsr_live_action', 'nsr_handle_live_action');
+add_action('admin_post_nopriv_nsr_live_action', 'nsr_handle_live_action');
+function nsr_handle_live_action() {
 
     if (!current_user_can('manage_options')) {
         wp_die('Unauthorized');
     }
 
     $action = $_POST['nsr_live_action'] ?? '';
+    $effect = sanitize_text_field($_POST['effect'] ?? '');
 
     if ($action === 'show_mode_trigger') {
-        $effect = sanitize_text_field($_POST['effect'] ?? '');
-        wp_die('SHOW MODE TRIGGER HIT: [' . esc_html($effect) . ']');
+
+        // 🔥 TEMP TEST
+        wp_die('HANDLER WORKED: ' . esc_html($effect));
+
+        // (we’ll restore real logic after this works)
     }
+
+    wp_safe_redirect(admin_url('admin.php?page=nsr-live'));
+    exit;
+}
 
 });
 define('NSR_LIVE_OPT', 'nsr_live_state_v46');
