@@ -689,7 +689,6 @@ if ($action === 'toggle_show_music') {
     $state['show_music_enabled'] = empty($state['show_music_enabled']) ? 1 : 0;
     $state['last_action'] = $state['show_music_enabled'] ? 'Show music mode enabled.' : 'Show music mode disabled.';
 }
-    }
 
     nsr_live_save($state);
     wp_safe_redirect($redirect_to ?: admin_url('admin.php?page=nsr-live'));
