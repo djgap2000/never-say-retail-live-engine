@@ -794,29 +794,16 @@ nsr_live_notice($state);
       <a class="button button-primary" href="<?php echo admin_url('admin-post.php?action=nsr_live_action&nsr_live_action=show_mode_trigger&effect=flash'); ?>">
     Flash Deal TEST
 </a>
-        <form method="post" action="<?php echo admin_url('admin-post.php'); ?>" class="nsr-show-buttons">
-    <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); nsr_live_hidden_redirect(); ?>
-    <input type="hidden" name="action" value="nsr_live_action">
-    <input type="hidden" name="nsr_live_action" value="show_mode_trigger">
-    <input type="hidden" name="effect" value="sold">
-    <button class="button">Sold Alert</button>
-</form>
+        <a class="button" href="<?php echo admin_url('admin-post.php?action=nsr_live_action&nsr_live_action=show_mode_trigger&effect=sold'); ?>">
+    Sold Alert
+</a>
 
-        <form method="post" action="<?php echo admin_url('admin-post.php'); ?>" class="nsr-show-buttons">
-    <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); nsr_live_hidden_redirect(); ?>
-    <input type="hidden" name="action" value="nsr_live_action">
-    <input type="hidden" name="nsr_live_action" value="show_mode_trigger">
-    <input type="hidden" name="effect" value="mystery">
-    <button class="button">Mystery Item</button>
-</form>
-
-        <form method="post" action="<?php echo admin_url('admin-post.php'); ?>" class="nsr-show-buttons">
-    <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); nsr_live_hidden_redirect(); ?>
-    <input type="hidden" name="action" value="nsr_live_action">
-    <input type="hidden" name="nsr_live_action" value="show_mode_trigger">
-    <input type="hidden" name="effect" value="hype">
-    <button class="button">Claim Hype</button>
-</form>
+        <a class="button" href="<?php echo admin_url('admin-post.php?action=nsr_live_action&nsr_live_action=show_mode_trigger&effect=mystery'); ?>">
+    Mystery Item
+</a>
+        <a class="button" href="<?php echo admin_url('admin-post.php?action=nsr_live_action&nsr_live_action=show_mode_trigger&effect=hype'); ?>">
+    Claim Hype
+</a>
 
         <div class="nsr-show-buttons">
             <form method="post" action="<?php echo admin_url('admin-post.php'); ?>">
