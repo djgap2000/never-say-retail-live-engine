@@ -19,9 +19,8 @@ function nsr_handle_live_action() {
         wp_die('Unauthorized');
     }
 
-    $action = $_POST['nsr_live_action'] ?? '';
-    $effect = sanitize_text_field($_POST['effect'] ?? '');
-
+    $action = $_REQUEST['nsr_live_action'] ?? '';
+$effect = sanitize_text_field($_REQUEST['effect'] ?? '');
     if ($action === 'show_mode_trigger') {
 
         // 🔥 TEMP TEST
