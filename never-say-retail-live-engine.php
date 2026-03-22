@@ -228,6 +228,11 @@ function nsr_live_styles() {
        .nsr-showmode-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}
 .nsr-showmode-card,.nsr-host-cues{background:#fff;border:1px solid #dcdcde;border-radius:18px;padding:16px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
 .nsr-showmode-banner{border-radius:15px;padding:14px 16px;margin:12px 0 16px;font-weight:700;font-size:18px;letter-spacing:.2px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+        .nsr-card,
+.nsr-card * {
+    font-weight: normal !important;
+    font-size: inherit !important;
+}
 .nsr-showmode-banner.flash{background:#fff7ed;border:1px solid #fdba74}
 .nsr-showmode-banner.sold{background:#ecfdf5;border:1px solid #86efac}
 .nsr-showmode-banner.mystery{background:#eff6ff;border:1px solid #93c5fd}
