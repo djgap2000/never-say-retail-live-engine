@@ -210,6 +210,9 @@ if (banner) {
 });
 document.addEventListener('DOMContentLoaded', function () {
  let nsrAudioCtx = null;
+  let nsrMusicOsc = null;
+let nsrMusicGain = null;
+let nsrMusicTimer = null;
 
 function nsrUnlockAudio() {
   try {
@@ -238,7 +241,81 @@ function nsrUnlockAudio() {
 document.addEventListener('click', nsrUnlockAudio, { once: true });
 document.addEventListener('touchstart', nsrUnlockAudio, { once: true }); 
   const banner = document.querySelector('.nsr-showmode-banner');
+function stopMusicLoop() {
+    try {
+        if (nsrMusicTimer) {
+            clearInterval(nsrMusicTimer);
+            nsrMusicTimer = null;
+        }
 
+        if (nsrMusicGain && nsrAudioCtx) {
+            nsrMusicGain.gain.cancelScheduledValues(nsrAudioCtx.currentTime);
+            nsrMusicGain.gain.setValueAtTime(nsrMusicGain.gain.value || 0.0001, nsrAudioCtx.currentTime);
+            nsrMusicGain.gain.exponentialRampToValueAtTime(0.0001, nsrAudioCtx.currentTime + 0.2);
+        }
+
+        if (nsrMusicOsc) {
+            setTimeout(() => {
+                try { nsrMusicOsc.stop(); } catch (e) {}
+                try { nsrMusicOsc.disconnect(); } catch (e) {}
+                nsrMusicOsc = null;
+                nsrMusicGain = null;
+            }, 220);
+        }
+    } catch (e) {}
+}
+
+function startMusicLoop() {
+    try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+
+        if (!nsrAudioCtx) {
+            nsrAudioCtx = new AudioCtx();
+        }
+
+        if (nsrAudioCtx.state === 'suspended') {
+            nsrAudioCtx.resume();
+        }
+
+        stopMusicLoop();
+
+        const ctx = nsrAudioCtx;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.value = 220;
+        gain.gain.value = 0.0001;
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+
+        nsrMusicOsc = osc;
+        nsrMusicGain = gain;
+
+        let step = 0;
+        const notes = [220, 247, 262, 247];
+
+        nsrMusicTimer = setInterval(() => {
+            try {
+                if (!nsrMusicOsc || !nsrMusicGain || !nsrAudioCtx) return;
+
+                const now = nsrAudioCtx.currentTime;
+                const note = notes[step % notes.length];
+
+                nsrMusicOsc.frequency.setValueAtTime(note, now);
+                nsrMusicGain.gain.cancelScheduledValues(now);
+                nsrMusicGain.gain.setValueAtTime(0.0001, now);
+                nsrMusicGain.gain.exponentialRampToValueAtTime(0.015, now + 0.05);
+                nsrMusicGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+
+                step++;
+            } catch (e) {}
+        }, 500);
+    } catch (e) {}
+}
 function playTone(freq, duration, type, volume) {
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -294,6 +371,12 @@ osc.stop(ctx.currentTime + duration);
   if (banner) {
     const effect = banner.dataset.effect || '';
     playEffect(effect);
+
+    if (banner.dataset.music === '1') {
+    startMusicLoop();
+} else {
+    stopMusicLoop();
+}
 
     banner.animate(
       [
