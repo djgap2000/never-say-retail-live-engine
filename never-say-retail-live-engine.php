@@ -44,6 +44,7 @@ $effect = sanitize_text_field($_REQUEST['effect'] ?? '');
     wp_safe_redirect(admin_url('admin.php?page=nsr-live'));
     exit;
 }
+}
 
 define('NSR_LIVE_OPT', 'nsr_live_state_v46');
 
