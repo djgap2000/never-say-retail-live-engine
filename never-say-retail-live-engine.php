@@ -34,7 +34,6 @@ function nsr_handle_live_action() {
     exit;
 }
 
-});
 define('NSR_LIVE_OPT', 'nsr_live_state_v46');
 
 function nsr_live_default_state() {
