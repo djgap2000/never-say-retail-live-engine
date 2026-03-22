@@ -782,7 +782,7 @@ nsr_live_notice($state);
     <div class="nsr-showmode-banner <?php echo !empty($state['show_mode_effect']) ? esc_attr($state['show_mode_effect']) : ''; ?>"
          data-effect="<?php echo !empty($state['show_mode_effect']) ? esc_attr($state['show_mode_effect']) : ''; ?>"
          data-fx="<?php echo !empty($state['show_fx_enabled']) ? '1' : '0'; ?>"
-         data-music="<?php echo !empty($state['music_mode']) ? '1' : '0'; ?>">
+         data-music="<?php echo !empty($state['show_music_enabled']) ? '1' : '0'; ?>"
         <?php echo esc_html($state['show_mode_banner']); ?>
     </div>
 <?php } ?>
