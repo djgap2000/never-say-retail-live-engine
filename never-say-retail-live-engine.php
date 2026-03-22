@@ -23,11 +23,27 @@ function nsr_handle_live_action() {
 $effect = sanitize_text_field($_REQUEST['effect'] ?? '');
     if ($action === 'show_mode_trigger') {
 
-        // 🔥 TEMP TEST
-        wp_die('HANDLER WORKED: ' . esc_html($effect));
+    $banner = '';
 
-        // (we’ll restore real logic after this works)
+    if ($effect === 'flash') {
+        $banner = 'FLASH DEAL LIVE';
+    } elseif ($effect === 'sold') {
+        $banner = 'SOLD ALERT';
+    } elseif ($effect === 'mystery') {
+        $banner = 'MYSTERY ITEM';
+    } elseif ($effect === 'hype') {
+        $banner = 'CLAIM IT NOW';
     }
+
+    $state = nsr_live_state();
+    $state['show_mode_effect'] = $effect;
+    $state['show_mode_banner'] = $banner;
+    $state['last_action'] = 'Show mode trigger: ' . $effect;
+
+    nsr_live_save($state);
+    wp_safe_redirect(admin_url('admin.php?page=nsr-live'));
+    exit;
+}
 
     wp_safe_redirect(admin_url('admin.php?page=nsr-live'));
     exit;
