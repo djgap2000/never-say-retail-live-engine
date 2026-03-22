@@ -779,8 +779,8 @@ nsr_live_notice($state);
         <h2>Live Energy Controls</h2>
         <p>Trigger quick audience moments during the show.</p>
 
-       <form method="post" action="<?php echo admin_url('admin-post.php'); ?>" class="nsr-show-buttons">
-    <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); ?>
+      <form method="post" action="<?php echo admin_url('admin-post.php'); ?>" class="nsr-show-buttons">
+<?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); nsr_live_hidden_redirect(); ?>
 
     <input type="hidden" name="action" value="nsr_live_action">
     <input type="hidden" name="nsr_live_action" value="show_mode_trigger">
