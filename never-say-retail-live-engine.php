@@ -227,8 +227,28 @@ function nsr_live_styles() {
         .nsr-lists{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px}
        .nsr-showmode-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}
 .nsr-showmode-card,.nsr-host-cues{background:#fff;border:1px solid #dcdcde;border-radius:18px;padding:16px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
-.nsr-showmode-banner{border-radius:15px;padding:14px 16px;margin:12px 0 16px;font-weight:700;font-size:18px;letter-spacing:.2px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
-        .nsr-card,
+.nsr-showmode-banner{
+    position:fixed;
+    top:80px;
+    left:50%;
+    transform:translateX(-50%);
+    z-index:9999;
+    min-width:320px;
+    max-width:90%;
+    text-align:center;
+    border-radius:12px;
+    padding:16px 24px;
+    margin:12px 0 16px;
+    font-weight:700;
+    font-size:18px;
+    letter-spacing:.2px;
+    box-shadow:0 10px 30px rgba(0,0,0,.2);
+    animation:nsrPop .3s ease-out;
+}
+        @keyframes nsrPop{
+    0%{transform:translateX(-50%) scale(.9);opacity:0}
+    100%{transform:translateX(-50%) scale(1);opacity:1}
+}
 .nsr-card * {
     font-weight: normal !important;
     font-size: inherit !important;
