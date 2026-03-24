@@ -256,27 +256,23 @@ function nsr_live_styles() {
     background:linear-gradient(135deg,#fff7ed 0%,#ffedd5 100%);
     border:1px solid #fb923c;
     color:#9a3412;
-    animation:nsrFlashPop .35s ease-out, nsrFlashGlow .9s ease-in-out 2;
 }
 
 .nsr-showmode-banner.sold{
     background:linear-gradient(135deg,#ecfdf5 0%,#dcfce7 100%);
     border:1px solid #22c55e;
     color:#166534;
-    animation:nsrSoldDrop .35s ease-out, nsrSoldShake .45s ease-in-out 1;
 }
 .nsr-showmode-banner.mystery{
     background:linear-gradient(135deg,#eef2ff 0%,#e0e7ff 100%);
     border:1px solid #6366f1;
     color:#3730a3;
-    animation:nsrMysteryFloat .45s ease-out, nsrMysteryGlow 1.2s ease-in-out 2;
 }
 
 .nsr-showmode-banner.hype{
     background:linear-gradient(135deg,#faf5ff 0%,#f3e8ff 100%);
     border:1px solid #a855f7;
     color:#7e22ce;
-    animation:nsrHypeBounce .4s ease-out, nsrHypePulse .9s ease-in-out 2;
 }
 .nsr-show-buttons{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .nsr-host-cues h3{margin-top:0}
