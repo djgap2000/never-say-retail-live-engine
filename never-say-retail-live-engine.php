@@ -877,7 +877,7 @@ nsr_live_notice($state);
         <div class="nsr-pill">SHOW MODE</div>
         <h2>Live Energy Controls</h2>
         <p>Trigger quick audience moments during the show.</p>
-
+<div class="nsr-show-buttons">
       <a class="button button-primary" href="<?php echo admin_url('admin-post.php?action=nsr_live_action&nsr_live_action=show_mode_trigger&effect=flash'); ?>">
     Flash Deal TEST
 </a>
