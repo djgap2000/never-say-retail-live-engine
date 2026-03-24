@@ -881,26 +881,32 @@ nsr_live_notice($state);
       <a class="button button-primary" href="<?php echo admin_url('admin-post.php?action=nsr_live_action&nsr_live_action=show_mode_trigger&effect=flash'); ?>">
     Flash Deal TEST
 </a>
-        <a class="button" href="<?php echo admin_url('admin-post.php?action=nsr_live_action&nsr_live_action=show_mode_trigger&effect=sold'); ?>">
+
+<a class="button" href="<?php echo admin_url('admin-post.php?action=nsr_live_action&nsr_live_action=show_mode_trigger&effect=sold'); ?>">
     Sold Alert
 </a>
 
-        <a class="button" href="<?php echo admin_url('admin-post.php?action=nsr_live_action&nsr_live_action=show_mode_trigger&effect=mystery'); ?>">
+<a class="button" href="<?php echo admin_url('admin-post.php?action=nsr_live_action&nsr_live_action=show_mode_trigger&effect=mystery'); ?>">
     Mystery Item
 </a>
-        <a class="button" href="<?php echo admin_url('admin-post.php?action=nsr_live_action&nsr_live_action=show_mode_trigger&effect=hype'); ?>">
+
+<a class="button" href="<?php echo admin_url('admin-post.php?action=nsr_live_action&nsr_live_action=show_mode_trigger&effect=hype'); ?>">
     Claim Hype
 </a>
 
-        <div class="nsr-show-buttons">
-            <form method="post" action="<?php echo admin_url('admin-post.php'); ?>">
-    <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); nsr_live_hidden_redirect(); ?>
+</div>
+
+<form method="post" action="<?php echo admin_url('admin-post.php'); ?>">
+    <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); ?>
+    <?php nsr_live_hidden_redirect(); ?>
+
     <input type="hidden" name="action" value="nsr_live_action">
     <input type="hidden" name="nsr_live_action" value="toggle_show_fx">
-                <button class="button <?php echo !empty($state['show_fx_enabled']) ? 'button-primary nsr-fx-on' : 'nsr-fx-off'; ?>">
-    <?php echo !empty($state['show_fx_enabled']) ? 'FX ON' : 'FX OFF'; ?>
-</button>
-            </form>
+
+    <button class="button <?php echo !empty($state['show_fx_enabled']) ? 'button-primary nsr-fx-on' : ''; ?>">
+        <?php echo !empty($state['show_fx_enabled']) ? 'FX ON' : 'FX OFF'; ?>
+    </button>
+</form>
 
             <form method="post" action="<?php echo admin_url('admin-post.php'); ?>">
     <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); nsr_live_hidden_redirect(); ?>
