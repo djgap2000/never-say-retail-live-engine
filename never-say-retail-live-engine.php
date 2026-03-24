@@ -245,7 +245,6 @@ function nsr_live_styles() {
     box-shadow:0 10px 30px rgba(0,0,0,.2);
     pointer-events:none;
 }
-}
         @keyframes nsrPop{
     0%{transform:translateX(-50%) scale(.9);opacity:0}
     100%{transform:translateX(-50%) scale(1);opacity:1}
