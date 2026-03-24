@@ -238,11 +238,11 @@ function nsr_live_styles() {
     text-align:center;
     border-radius:12px;
     padding:16px 24px;
-    margin:12px 0 16px;
     font-weight:700;
     font-size:18px;
     letter-spacing:.2px;
     box-shadow:0 10px 30px rgba(0,0,0,.2);
+    pointer-events:none;
 }
         @keyframes nsrPop{
     0%{transform:translateX(-50%) scale(.9);opacity:0}
