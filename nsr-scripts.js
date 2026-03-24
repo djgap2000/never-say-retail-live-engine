@@ -186,6 +186,14 @@ if (banner) {
   console.log('NSR FX enabled:', banner.dataset.fx);
 }
   if (banner) {
+  setTimeout(() => {
+    banner.style.opacity = '0';
+    banner.style.transition = 'opacity 0.25s ease';
+    setTimeout(() => {
+      if (banner && banner.parentNode) banner.parentNode.removeChild(banner);
+    }, 250);
+  }, 1800);
+}
     banner.animate(
       [
         { transform: 'scale(1)', opacity: 1 },
