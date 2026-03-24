@@ -229,12 +229,13 @@ function nsr_live_styles() {
 .nsr-showmode-card,.nsr-host-cues{background:#fff;border:1px solid #dcdcde;border-radius:18px;padding:16px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
 .nsr-showmode-banner{
     position:fixed;
-    top:80px;
+    top:20px;
     left:50%;
     transform:translateX(-50%);
     z-index:9999;
     min-width:320px;
-    max-width:90%;
+    max-width:500px;
+    width:auto;
     text-align:center;
     border-radius:12px;
     padding:16px 24px;
@@ -243,6 +244,7 @@ function nsr_live_styles() {
     letter-spacing:.2px;
     box-shadow:0 10px 30px rgba(0,0,0,.2);
     pointer-events:none;
+}
 }
         @keyframes nsrPop{
     0%{transform:translateX(-50%) scale(.9);opacity:0}
