@@ -263,6 +263,7 @@ function nsr_live_styles() {
     border:1px solid #22c55e;
     color:#166534;
 }
+
 .nsr-showmode-banner.mystery{
     background:linear-gradient(135deg,#eef2ff 0%,#e0e7ff 100%);
     border:1px solid #6366f1;
