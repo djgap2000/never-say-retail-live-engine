@@ -224,15 +224,19 @@ function nsr_live_styles() {
         .nsr-stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:16px}
         .nsr-stat{background:#f9fafb;border-radius:12px;padding:12px}
         .nsr-stat strong{display:block;margin-bottom:6px}
-        .nsr-lists{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px}
-       .nsr-showmode-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}
-.nsr-showmode-card,.nsr-host-cues{background:#fff;border:1px solid #dcdcde;border-radius:18px;padding:16px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
+        .nsr-showmode-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}
+
+.nsr-showmode-card,.nsr-host-cues{
+    background:#fff;
+    border:1px solid #dcdcde;
+    border-radius:18px;
+    padding:16px;
+    box-shadow:0 2px 10px rgba(0,0,0,.04);
+}
+
 .nsr-showmode-banner{
-    position:fixed;
-    top:20px;
-    left:50%;
-    transform:translateX(-50%);
-    z-index:9999;
+    position:relative;
+    margin:12px 0;
     min-width:320px;
     max-width:500px;
     width:auto;
