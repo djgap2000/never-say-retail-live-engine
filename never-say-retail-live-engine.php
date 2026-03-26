@@ -994,7 +994,7 @@ nsr_live_notice($state);
         <button class="button">Clear Banner</button>
     </form>
 
-
+       </div>
     <div class="nsr-host-cues">
         ...
         <div class="nsr-pill">HOST CUES</div>
