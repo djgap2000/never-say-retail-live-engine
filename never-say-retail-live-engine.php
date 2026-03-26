@@ -172,9 +172,38 @@ function nsr_live_styles() {
 .nsr-price-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px}
 .nsr-price-note{margin-top:8px;font-style:italic;opacity:.85}
 .nsr-smart-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-        .nsr-live-wrap{max-width:1200px}
-        .nsr-admin-grid{display:grid;grid-template-columns:1fr 1.2fr .9fr;gap:18px;margin-top:16px}
-        .nsr-admin-grid.second{grid-template-columns:1fr 1fr}
+        .wrap.nsr-live-wrap{
+    max-width:none;
+    width:100%;
+}
+
+.nsr-admin-grid{
+    display:grid;
+    grid-template-columns:1.1fr 1.4fr 1fr;
+    gap:16px;
+    align-items:start;
+}
+
+.nsr-showmode-wrap{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+    margin:16px 0;
+    width:100%;
+}
+
+.nsr-showmode-card,
+.nsr-host-cues{
+    width:100%;
+}
+
+.nsr-show-buttons{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:10px;
+    align-items:center;
+}
         .nsr-card,.nsr-card-list{background:#fff;border:1px solid #dcdcde;border-radius:14px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
         .nsr-row{display:flex;gap:10px;align-items:center}
         .wrap-buttons{flex-wrap:wrap;margin-top:12px}
