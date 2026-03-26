@@ -172,11 +172,19 @@ function nsr_live_styles() {
 .nsr-price-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px}
 .nsr-price-note{margin-top:8px;font-style:italic;opacity:.85}
 .nsr-smart-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-        .wrap.nsr-live-wrap{
-    max-width:none;
-    width:100%;
+        .nsr-live-wrap{
+    max-width:none !important;
+    width:100% !important;
 }
 
+.wrap.nsr-live-wrap{
+    max-width:none !important;
+    width:100% !important;
+}
+.nsr-live-wrap,
+.nsr-live-wrap *{
+    box-sizing:border-box;
+}
 .nsr-admin-grid{
     display:grid;
     grid-template-columns:1.1fr 1.4fr 1fr;
