@@ -264,7 +264,24 @@ function nsr_live_styles() {
     border:1px solid #22c55e;
     color:#166534;
 }
-
+.nsr-showmode-banner{
+    position:fixed;
+    top:20px;
+    left:50%;
+    transform:translateX(-50%);
+    z-index:9999;
+    min-width:320px;
+    max-width:500px;
+    width:auto;
+    text-align:center;
+    border-radius:12px;
+    padding:16px 24px;
+    font-weight:700;
+    font-size:18px;
+    letter-spacing:.2px;
+    box-shadow:0 10px 30px rgba(0,0,0,.2);
+    pointer-events:none;
+}
 .nsr-showmode-banner.mystery{
     background:linear-gradient(135deg,#eef2ff 0%,#e0e7ff 100%);
     border:1px solid #6366f1;
