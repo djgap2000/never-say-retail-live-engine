@@ -202,12 +202,11 @@ function nsr_live_styles() {
 
 .nsr-showmode-wrap{
     display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:16px;
+    grid-template-columns:420px 1fr;
+    gap:20px;
     margin:16px 0;
-    width:100%;
+    align-items:start;
 }
-
 .nsr-showmode-card,
 .nsr-host-cues{
     width:100%;
@@ -269,7 +268,7 @@ function nsr_live_styles() {
         .nsr-stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:16px}
         .nsr-stat{background:#f9fafb;border-radius:12px;padding:12px}
         .nsr-stat strong{display:block;margin-bottom:6px}
-        .nsr-showmode-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}
+        .nsr-showmode-wrap{display:grid;grid-template-columns:420px 1fr;gap:20px;margin:16px 0;align-items:start}
 
 .nsr-showmode-card,.nsr-host-cues{
     background:#fff;
