@@ -886,67 +886,47 @@ function nsr_live_studio_page() {
 nsr_live_notice($state);
 ?>
 <?php if (!empty($state['show_mode_banner'])) { ?>
-    <div class="nsr-showmode-banner <?php echo !empty($state['show_mode_effect']) ? esc_attr($state['show_mode_effect']) : ''; ?>"
-         data-effect="<?php echo !empty($state['show_mode_effect']) ? esc_attr($state['show_mode_effect']) : ''; ?>"
-         data-fx="<?php echo !empty($state['show_fx_enabled']) ? '1' : '0'; ?>"
-         data-music="<?php echo !empty($state['show_music_enabled']) ? '1' : '0'; ?>"
+    <div class="nsr-showmode-banner <?php echo !empty($state['show_mode_effect']) ? esc_attr($state['show_mode_effect']) : ''; ?>">
         <?php echo esc_html($state['show_mode_banner']); ?>
     </div>
 <?php } ?>
+
 <div class="nsr-showmode-wrap">
     <div class="nsr-showmode-card">
         <div class="nsr-pill">SHOW MODE</div>
         <h2>Live Energy Controls</h2>
         <p>Trigger quick audience moments during the show.</p>
-<div class="nsr-show-buttons">
-      <a class="button button-primary" href="<?php echo admin_url('admin-post.php?action=nsr_live_action&nsr_live_action=show_mode_trigger&effect=flash'); ?>">
-    Flash Deal TEST
-</a>
 
-<a class="button" href="<?php echo admin_url('admin-post.php?action=nsr_live_action&nsr_live_action=show_mode_trigger&effect=sold'); ?>">
-    Sold Alert
-</a>
-
-<a class="button" href="<?php echo admin_url('admin-post.php?action=nsr_live_action&nsr_live_action=show_mode_trigger&effect=mystery'); ?>">
-    Mystery Item
-</a>
-
-<a class="button" href="<?php echo admin_url('admin-post.php?action=nsr_live_action&nsr_live_action=show_mode_trigger&effect=hype'); ?>">
-    Claim Hype
-</a>
-
-</div>
-
-<form method="post" action="<?php echo admin_url('admin-post.php'); ?>">
-    <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); ?>
-    <?php nsr_live_hidden_redirect(); ?>
-
-    <input type="hidden" name="action" value="nsr_live_action">
-    <input type="hidden" name="nsr_live_action" value="toggle_show_fx">
-
-    <button class="button <?php echo !empty($state['show_fx_enabled']) ? 'button-primary nsr-fx-on' : ''; ?>">
-        <?php echo !empty($state['show_fx_enabled']) ? 'FX ON' : 'FX OFF'; ?>
-    </button>
-</form>
-
-            <form method="post" action="<?php echo admin_url('admin-post.php'); ?>">
-    <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); nsr_live_hidden_redirect(); ?>
-    <input type="hidden" name="action" value="nsr_live_action">
-    <input type="hidden" name="nsr_live_action" value="toggle_show_music">
-                <button class="button <?php echo !empty($state['show_music_enabled']) ? 'button-primary nsr-fx-on' : 'nsr-fx-off'; ?>">
-    <?php echo !empty($state['show_music_enabled']) ? 'Music Mode ON' : 'Music Mode OFF'; ?>
-</button>
-            </form>
-
-            <form method="post">
-                <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); nsr_live_hidden_redirect(); ?>
-                <input type="hidden" name="nsr_live_action" value="show_mode_clear">
-                <button class="button">Clear Banner</button>
-            </form>
+        <div class="nsr-show-buttons">
+            <a class="button button-primary" href="<?php echo admin_url('admin-post.php?action=nsr_live_action&nsr_live_action=show_mode_trigger&effect=flash'); ?>">Flash Deal TEST</a>
+            <a class="button" href="<?php echo admin_url('admin-post.php?action=nsr_live_action&nsr_live_action=show_mode_trigger&effect=sold'); ?>">Sold Alert</a>
+            <a class="button" href="<?php echo admin_url('admin-post.php?action=nsr_live_action&nsr_live_action=show_mode_trigger&effect=mystery'); ?>">Mystery Item</a>
+            <a class="button" href="<?php echo admin_url('admin-post.php?action=nsr_live_action&nsr_live_action=show_mode_trigger&effect=hype'); ?>">Claim Hype</a>
         </div>
+
+        <form method="post" action="<?php echo admin_url('admin-post.php'); ?>">
+            <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); ?>
+            <?php nsr_live_hidden_redirect(); ?>
+            <input type="hidden" name="action" value="nsr_live_action">
+            <input type="hidden" name="nsr_live_action" value="toggle_show_fx">
+            <button class="button <?php echo !empty($state['show_fx_enabled']) ? 'button-primary nsr-fx-on' : ''; ?>">
+                <?php echo !empty($state['show_fx_enabled']) ? 'FX ON' : 'FX OFF'; ?>
+            </button>
+        </form>
+
+        <form method="post" action="<?php echo admin_url('admin-post.php'); ?>">
+            <?php wp_nonce_field('nsr_live_action', 'nsr_live_nonce'); ?>
+            <?php nsr_live_hidden_redirect(); ?>
+            <input type="hidden" name="action" value="nsr_live_action">
+            <input type="hidden" name="nsr_live_action" value="toggle_show_music">
+            <button class="button <?php echo !empty($state['show_music_enabled']) ? 'button-primary nsr-fx-on' : 'nsr-fx-off'; ?>">
+                <?php echo !empty($state['show_music_enabled']) ? 'Music Mode ON' : 'Music Mode OFF'; ?>
+            </button>
+        </form>
     </div>
 
     <div class="nsr-host-cues">
+        ...
         <div class="nsr-pill">HOST CUES</div>
         <h3>Energy Prompts</h3>
         <p>“Drop a comment if you’re here.”</p>
