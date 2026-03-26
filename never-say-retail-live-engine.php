@@ -202,7 +202,7 @@ function nsr_live_styles() {
 
 .nsr-showmode-wrap{
     display:grid;
-    grid-template-columns:420px 1fr;
+    grid-template-columns:500px 1fr;
     gap:20px;
     margin:16px 0;
     align-items:start;
