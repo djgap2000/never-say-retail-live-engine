@@ -188,13 +188,6 @@ if (banner) {
   if (banner) {
     banner.style.transition = 'opacity 0.25s ease';
 
-    setTimeout(() => {
-        banner.style.opacity = '0';
-        setTimeout(() => {
-            if (banner && banner.parentNode) banner.parentNode.removeChild(banner);
-        }, 250);
-    }, 1800);
-
     banner.animate(
       [
         { transform: 'scale(1)', opacity: 1 },
