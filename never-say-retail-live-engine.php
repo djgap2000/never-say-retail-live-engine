@@ -44,6 +44,18 @@ $effect = sanitize_text_field($_REQUEST['effect'] ?? '');
     wp_safe_redirect(admin_url('admin.php?page=nsr-live'));
     exit;
 }
+elseif ($action === 'clear_show_banner') {
+
+    $state = nsr_live_state();
+
+    $state['show_mode_banner'] = '';
+    $state['show_mode_effect'] = '';
+
+    nsr_live_save($state);
+
+    wp_safe_redirect(admin_url('admin.php?page=nsr-live'));
+    exit;
+}
 }
 
 define('NSR_LIVE_OPT', 'nsr_live_state_v46');
@@ -938,9 +950,13 @@ function nsr_live_studio_page() {
 nsr_live_notice($state);
 ?>
 <?php if (!empty($state['show_mode_banner'])) { ?>
-<div class="nsr-showmode-banner <?php echo !empty($state['show_mode_effect']) ? esc_attr($state['show_mode_effect']) : ''; ?>">
-    <?php echo esc_html($state['show_mode_banner']); ?>
-</div>
+    <div
+        class="nsr-showmode-banner <?php echo !empty($state['show_mode_effect']) ? esc_attr($state['show_mode_effect']) : ''; ?>"
+        data-effect="<?php echo !empty($state['show_mode_effect']) ? esc_attr($state['show_mode_effect']) : ''; ?>"
+        data-fx="<?php echo !empty($state['show_fx_enabled']) ? '1' : '0'; ?>"
+    >
+        <?php echo esc_html($state['show_mode_banner']); ?>
+    </div>
 <?php } ?>
 
 <div class="nsr-showmode-wrap">
