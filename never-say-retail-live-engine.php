@@ -938,8 +938,9 @@ function nsr_live_studio_page() {
 nsr_live_notice($state);
 ?>
 <?php if (!empty($state['show_mode_banner'])) { ?>
-    <div class="nsr-showmode-banner <?php echo !empty($state['show_mode_effect']) ? esc_attr($state['show_mode_effect']) : ''; ?>">
-        <?php echo esc_html($state['show_mode_banner']); ?>
+<div class="nsr-showmode-banner <?php echo !empty($state['show_mode_effect']) ? esc_attr($state['show_mode_effect']) : ''; ?>">
+    <?php echo esc_html($state['show_mode_banner']); ?>
+</div>
     </div>
 <?php } ?>
 
