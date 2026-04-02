@@ -1006,7 +1006,7 @@ nsr_live_notice($state);
         <?php nsr_live_hidden_redirect(); ?>
         <input type="hidden" name="action" value="nsr_live_action">
         <input type="hidden" name="nsr_live_action" value="clear_show_banner">
-        <button class="button">Clear Banner</button>
+        <button type="submit" class="button">Clear Banner</button>
     </form>
 
        </div>
