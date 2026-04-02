@@ -44,7 +44,19 @@ $effect = sanitize_text_field($_REQUEST['effect'] ?? '');
     wp_safe_redirect(admin_url('admin.php?page=nsr-live'));
     exit;
 }
-elseif ($action === 'clear_show_banner') {
+        elseif ($action === 'clear_show_banner') {
+
+    $state = nsr_live_state();
+
+    unset($state['show_mode_banner']);
+    unset($state['show_mode_effect']);
+    $state['last_action'] = 'Cleared show banner';
+
+    nsr_live_save($state);
+
+    wp_safe_redirect(admin_url('admin.php?page=nsr-live'));
+    exit;
+}elseif ($action === 'clear_show_banner') {
 
     $state = nsr_live_state();
 
@@ -57,6 +69,8 @@ elseif ($action === 'clear_show_banner') {
     wp_safe_redirect(admin_url('admin.php?page=nsr-live'));
     exit;
 }
+
+    
 }
 }
 
