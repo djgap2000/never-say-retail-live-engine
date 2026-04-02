@@ -48,13 +48,15 @@ elseif ($action === 'clear_show_banner') {
 
     $state = nsr_live_state();
 
-    $state['show_mode_banner'] = '';
-    $state['show_mode_effect'] = '';
+    unset($state['show_mode_banner']);
+    unset($state['show_mode_effect']);
+    $state['last_action'] = 'Cleared show banner';
 
     nsr_live_save($state);
 
     wp_safe_redirect(admin_url('admin.php?page=nsr-live'));
     exit;
+}
 }
 }
 
